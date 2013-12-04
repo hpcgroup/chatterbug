@@ -74,7 +74,7 @@ int main(int argc, char **argv)
   endtime = MPI_Wtime();
   
   if(rank == dst || rank == src)
-    printf("[%d] Time for %d size %lf: (%lf %lf)\n",rank,size,(endtime-starttime)/numIter,endtime,starttime);
+    printf("[%d] Time for %d size %lf: (%lf %lf)\n",rank,size,(endtime-starttime),endtime,starttime);
 
   MPI_Finalize();
 }
