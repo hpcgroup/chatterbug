@@ -1,0 +1,7 @@
+#!/bin/bash
+
+#runjob -p 2 -n 512  --block $COBALT_PARTNAME --envs BG_SHAREDMEMSIZE=32MB BGQ_COUNTER_FILE=$mapping.cnt --mapping $mapping --envs PAMI_ROUTING=[2048][,[4][,[0:4][,[2][,2]]]] : ./proofdef 1048576 0 1 -1 -1
+runjob -p 1 -n 2 --block $COBALT_PARTNAME --envs BG_SHAREDMEMSIZE=32MB : ./ping 0 1 0 1 >out_1 
+runjob -p 1 -n 2 --block $COBALT_PARTNAME --envs BG_SHAREDMEMSIZE=32MB : ./ping 0 1 0 10 >out_10 
+runjob -p 1 -n 2 --block $COBALT_PARTNAME --envs BG_SHAREDMEMSIZE=32MB : ./ping 0 1 0 100 >out_100 
+runjob -p 1 -n 2 --block $COBALT_PARTNAME --envs BG_SHAREDMEMSIZE=32MB : ./ping 0 1 0 1000 >out_1000
