@@ -48,7 +48,7 @@ int main(int argc, char **argv) {
 
   int messageSize;
 
-  if (argc != 4 && argc != 8) {
+  if (argc != 3 && argc != 5) {
     printf("%s [array_size] [message_size] \n", argv[0]);
     printf("%s [array_size_X] [array_size_Y] [array_size_Z] [message_size] \n", argv[0]);
     MPI_Abort(MPI_COMM_WORLD, -1);
