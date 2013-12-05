@@ -1,0 +1,9 @@
+#!/bin/bash
+
+#runjob -p 2 -n 512  --block $COBALT_PARTNAME --envs BG_SHAREDMEMSIZE=32MB BGQ_COUNTER_FILE=$mapping.cnt --mapping $mapping --envs PAMI_ROUTING=[2048][,[4][,[0:4][,[2][,2]]]] : ./proofdef 1048576 0 1 -1 -1
+size=1
+for i in {1..20}
+do
+runjob -p 16 -n 512 --block $COBALT_PARTNAME --envs BG_SHAREDMEMSIZE=32MB : ./a2a 8 8 8 $size >out_$size
+let "size = 2 * $size"
+done
