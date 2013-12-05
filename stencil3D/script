@@ -2,8 +2,15 @@
 
 #runjob -p 2 -n 512  --block $COBALT_PARTNAME --envs BG_SHAREDMEMSIZE=32MB BGQ_COUNTER_FILE=$mapping.cnt --mapping $mapping --envs PAMI_ROUTING=[2048][,[4][,[0:4][,[2][,2]]]] : ./proofdef 1048576 0 1 -1 -1
 size=1
+procs=$1
+dim1=$2
+dim2=$3
+dim3=$4
 for i in {1..20}
 do
-runjob -p 16 -n 512 --block $COBALT_PARTNAME --envs BG_SHAREDMEMSIZE=32MB : ./stencil 8 8 8 $size >out_$size
+runjob -p 16 -n $procs --block $COBALT_PARTNAME --envs BG_SHAREDMEMSIZE=32MB : ./stencil $dim1 $dim2 $dim3 $size >${procs}_def_$size
+runjob -p 16 -n $procs --block $COBALT_PARTNAME --envs BG_SHAREDMEMSIZE=32MB PAMI_ROUTING=[2048][,[4][,[0:4][,[4][,4]]]] : ./stencil $dim1 $dim2 $dim3 $size >${procs}_det_$size
+runjob -p 16 -n $procs --block $COBALT_PARTNAME --envs BG_SHAREDMEMSIZE=32MB PAMI_ROUTING=[2048][,[4][,[0:4][,[0][,0]]]] : ./stencil $dim1 $dim2 $dim3 $size >${procs}_long_$size
+runjob -p 16 -n $procs --block $COBALT_PARTNAME --envs BG_SHAREDMEMSIZE=32MB PAMI_ROUTING=[2048][,[4][,[0:4][,[1][,1]]]] : ./stencil $dim1 $dim2 $dim3 $size >${procs}_dyn_$size
 let "size = 2 * $size"
 done
