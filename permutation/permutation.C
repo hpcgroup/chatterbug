@@ -7,7 +7,7 @@ int main(int argc, char **argv)
 {
   MPI_Init(&argc,&argv);
   int rank, numranks;
-  int numIter = 100;
+  int numIter = 10;
 
   double starttime, endtime;
   MPI_Status status;

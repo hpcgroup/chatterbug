@@ -6,9 +6,9 @@
 #define MP_Y 1
 #define MP_Z 2
 
-#define MAX_ITER 50
+#define MAX_ITER 10
 
-main(int argc, char **argv)
+int main(int argc, char **argv)
 {
   MPI_Init(&argc,&argv);
 
@@ -41,7 +41,11 @@ main(int argc, char **argv)
   MPI_Barrier(cartcomm);
   startTime = MPI_Wtime();
   for (i=0; i<MAX_ITER; i++) {
-    if(i == 5) {
+#if CMK_BIGSIM_CHARM
+    if(!myrank)
+      BgPrintf("Current time is %f\n");
+#endif
+    if(i == 3) {
       MPI_Barrier(MPI_COMM_WORLD);
       start5Time = MPI_Wtime();
     }
@@ -49,10 +53,14 @@ main(int argc, char **argv)
   }
   MPI_Barrier(cartcomm);
   stopTime = MPI_Wtime();
+#if CMK_BIGSIM_CHARM
+  if(!myrank)
+    BgPrintf("After barrier Current time is %f\n");
+#endif
 
   if(myrank == 0) {
     printf("Finished %d iterations\n",MAX_ITER);
-    printf("Time elapsed per iteration for size %d: %f\n", perrank, (stopTime - start5Time)/(MAX_ITER-5));
+    printf("Time elapsed per iteration for size %d: %f\n", perrank, (stopTime - start5Time)/(MAX_ITER-3));
   }
   MPI_Finalize();
 }

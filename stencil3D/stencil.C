@@ -13,7 +13,7 @@
 
 #define calc_pe(a,b,c)	((a)+(b)*num_blocks_x+(c)*num_blocks_x*num_blocks_y)
 
-#define MAX_ITER		100
+#define MAX_ITER		10
 #define LEFT			1
 #define RIGHT			2
 #define TOP			3
@@ -123,8 +123,12 @@ int main(int argc, char **argv) {
   char *top_front_right_plane_in   = new char[messageSize];
 
   while(/*error > 0.001 &&*/ iterations < MAX_ITER) {
+#if CMK_BIGSIM_CHARM
+    if(!myRank)
+      BgPrintf("Current time is %f\n");
+#endif
     iterations++;
-    if(iterations == 10) {
+    if(iterations == 3) {
       MPI_Barrier(MPI_COMM_WORLD);
       startTime = MPI_Wtime();
     }
@@ -176,10 +180,14 @@ int main(int argc, char **argv) {
 
   MPI_Barrier(MPI_COMM_WORLD);
   endTime = MPI_Wtime();
+#if CMK_BIGSIM_CHARM
+  if(!myRank)
+    BgPrintf("After barrier Current time is %f\n");
+#endif
 
   if(myRank == 0) {
     printf("Completed %d iterations\n", iterations);
-    printf("Time elapsed per iteration for size %d: %f\n", messageSize, (endTime - startTime)/(MAX_ITER - 10));
+    printf("Time elapsed per iteration for size %d: %f\n", messageSize, (endTime - startTime)/(MAX_ITER - 3));
   }
 
   delete [] left_plane_out; delete [] right_plane_out;
