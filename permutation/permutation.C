@@ -7,12 +7,15 @@ int main(int argc, char **argv)
 {
   MPI_Init(&argc,&argv);
   int rank, numranks;
-  int numIter = 10;
+  int numIter = 50;
 
   double starttime, endtime;
   MPI_Status status;
 
   int size = atoi(argv[1]);
+  if(argc > 2) {
+    numIter = atoi(argv[2]);
+  }
 
   MPI_Comm_rank(MPI_COMM_WORLD,&rank);
   MPI_Comm_size(MPI_COMM_WORLD,&numranks);
