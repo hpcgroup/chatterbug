@@ -62,11 +62,8 @@ int main(int argc, char **argv)
   }
 
   MPI_Barrier(MPI_COMM_WORLD);
+  starttime = MPI_Wtime();
   for(int i = 0; i < numIter; i++) {
-    if(i == 10) {
-      MPI_Barrier(MPI_COMM_WORLD);
-      starttime = MPI_Wtime();
-    }
     MPI_Irecv(answer,size,MPI_CHAR,partner,0,MPI_COMM_WORLD,&requests[0]);
     MPI_Isend(question,size,MPI_CHAR,partner,0,MPI_COMM_WORLD,&requests[1]);
     MPI_Waitall(2, requests, MPI_STATUSES_IGNORE);
@@ -75,7 +72,7 @@ int main(int argc, char **argv)
   endtime = MPI_Wtime();
   
   if(rank == 0)
-    printf("[%d] Time for size %d is %lf : (%lf %lf)\n",rank,size,(endtime-starttime)/(numIter-10),endtime,starttime);
+    printf("[%d] Time for size %d is %lf : (%lf %lf)\n",rank,size,(endtime-starttime)/(numIter),endtime,starttime);
 
   MPI_Finalize();
 } 
