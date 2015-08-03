@@ -1,5 +1,5 @@
-CC?=mpixlcxx_r
-OPTS=-O3
+CC ?= mpixlcxx_r
+OPTS = -O3
 
 all:ping
 
