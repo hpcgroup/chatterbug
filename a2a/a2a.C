@@ -6,32 +6,30 @@
 #define MP_Y 1
 #define MP_Z 2
 
-#define MAX_ITER 10
-
 #define calc_pe(a,b,c)  ((a)+(b)*dims[MP_X]+(c)*dims[MP_X]*dims[MP_Y])
 
 int main(int argc, char **argv)
 {
+  int i, myrank, numranks, off;
   MPI_Init(&argc,&argv);
+  MPI_Comm_rank(MPI_COMM_WORLD,&myrank);
+  MPI_Comm_size(MPI_COMM_WORLD,&numranks);
 
-  if(argc != 5) {
-    printf("Correct usage: ./%s dimX dimY dimZ bytes_per_pair", argv[0]);
+  if(!myrank && argc != 6) {
+    printf("Correct usage: ./%s dimX dimY dimZ bytes_per_pair num_iter\n", argv[0]);
     MPI_Abort(MPI_COMM_WORLD, 0);
   }
 
-  int i, myrank, numranks, off;
   int dims[3] = {0, 0, 0};
   double startTime, stopTime;
 
   MPI_Request *sreq, *rreq;
 
-  MPI_Comm_rank(MPI_COMM_WORLD,&myrank);
-  MPI_Comm_size(MPI_COMM_WORLD,&numranks);
-
   dims[MP_X] = atoi(argv[1]);
   dims[MP_Y] = atoi(argv[2]);
   dims[MP_Z] = atoi(argv[3]);
   int perrank = atoi(argv[4]);
+  int MAX_ITER = atoi(argv[5]);
 
   int largerGroup = (dims[MP_X] > dims[MP_Y]) ? dims[MP_X] : dims[MP_Y];
 
