@@ -66,9 +66,9 @@ int main(int argc, char **argv)
     if(!myrank)
       printf("Current time is %f\n", MPI_Wtime());
 #endif
-      MPI_Reduce(bufX, redX, msg_size/4, MPI_INTEGER, MPI_SUM, rootX, subcommX);
-      MPI_Reduce(bufY, redY, msg_size/4, MPI_INTEGER, MPI_SUM, rootY, subcommY);
-      MPI_Reduce(bufZ, redZ, msg_size/4, MPI_INTEGER, MPI_SUM, rootZ, subcommZ);
+      MPI_Reduce(bufX, redX, msg_size/4, MPI_INT, MPI_SUM, rootX, subcommX);
+      MPI_Reduce(bufY, redY, msg_size/4, MPI_INT, MPI_SUM, rootY, subcommY);
+      MPI_Reduce(bufZ, redZ, msg_size/4, MPI_INT, MPI_SUM, rootZ, subcommZ);
   }
   stopTime = MPI_Wtime();
 #if CMK_BIGSIM_CHARM
