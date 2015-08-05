@@ -6,6 +6,43 @@
 #define MP_Y 1
 #define MP_Z 2
 
+void Reduce(void *sendbuf_, void *recvbuf_, int numInts, int root,
+  MPI_Comm subcomm) {
+  int *sendbuf = (int *)sendbuf_;
+  int *recvbuf = (int *)recvbuf_;
+  int commSize, myRank;
+  MPI_Comm_size(subcomm, &commSize);
+  MPI_Comm_rank(subcomm, &myRank);
+
+  int myParent = (myRank - 1) / 2;
+  int myChild1 = 2*myRank + 1;
+  int myChild2 = myChild1 + 1;
+
+  if(myChild1 < commSize) {
+    MPI_Recv(recvbuf, numInts, MPI_INT, myChild1, 0, subcomm,
+        MPI_STATUS_IGNORE);
+    for(int i = 0; i < numInts; i++) {
+      sendbuf[i] += recvbuf[i];
+    }
+  }
+  if(myChild2 < commSize) {
+    MPI_Recv(recvbuf, numInts, MPI_INT, myChild2, 0, subcomm,
+        MPI_STATUS_IGNORE);
+    for(int i = 0; i < numInts; i++) {
+      sendbuf[i] += recvbuf[i];
+    }
+  }
+  if(myRank != 0) {
+    MPI_Send(sendbuf, numInts, MPI_INT, myParent, 0, subcomm);
+  }
+  if(root != 0 && myRank == 0) {
+    MPI_Send(sendbuf, numInts, MPI_INT, root, 0, subcomm);
+  }
+  if(root != 0 && myRank == root) {
+    MPI_Recv(recvbuf, numInts, MPI_INT, 0, 0, subcomm, MPI_STATUS_IGNORE);
+  }
+}
+
 int main(int argc, char **argv)
 {
   int i,myrank, numranks, groupsize;
@@ -17,6 +54,10 @@ int main(int argc, char **argv)
   if(!myrank && argc != 6) {
     printf("Correct usage: ./%s dimX dimY dimZ bytes num_iter\n", argv[0]);
     MPI_Abort(MPI_COMM_WORLD, 0);
+  }
+
+  if(!myrank) {
+    printf("Executing reduction on %d ranks\n", numranks);
   }
 
   int dims[3] = {0, 0, 0};
@@ -57,6 +98,9 @@ int main(int argc, char **argv)
   int rootY = rand() % dims[MP_Y];
   int rootZ = rand() % dims[MP_Z];
 
+#if CMK_BIGSIM_CHARM
+  AMPI_Set_startevent(MPI_COMM_WORLD);
+#endif
   startTime = MPI_Wtime();
   for (i = 0; i < MAX_ITER; i++) {
 #if CMK_BIGSIM_CHARM
@@ -66,9 +110,9 @@ int main(int argc, char **argv)
     if(!myrank)
       printf("Current time is %f\n", MPI_Wtime());
 #endif
-      MPI_Reduce(bufX, redX, msg_size/4, MPI_INT, MPI_SUM, rootX, subcommX);
-      MPI_Reduce(bufY, redY, msg_size/4, MPI_INT, MPI_SUM, rootY, subcommY);
-      MPI_Reduce(bufZ, redZ, msg_size/4, MPI_INT, MPI_SUM, rootZ, subcommZ);
+    Reduce(bufX, redX, msg_size/4, rootX, subcommX);
+    Reduce(bufY, redY, msg_size/4, rootY, subcommY);
+    Reduce(bufZ, redZ, msg_size/4, rootZ, subcommZ);
   }
   stopTime = MPI_Wtime();
 #if CMK_BIGSIM_CHARM
