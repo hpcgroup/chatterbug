@@ -1,0 +1,76 @@
+miniAMR plotting routine
+
+--------------------------------------
+Contents of this README file:
+1.      overview
+2.      building plot
+3.      running plot
+4.      notes about the code
+--------------------------------------
+
+--------------------------------------
+1. overview
+
+     This plot package allows 2D or 3D plotting of the block structure of
+miniAMR.  The package is dependent on Sandia's SEACAS package, but could
+be adapted for other plotting packages.  Information about the block
+structure of a simulation are read in from the plot output from miniAMR,
+the data is sorted according to input to the plotting program, and then
+written out.
+
+-------------------
+3. Building plot:
+
+     To make the code, type 'make' in the directory containing the source.
+The enclosed Makefile is configured for a general installation with SEACAS
+libraries.  Other compiler or other machines will need changes in the CFLAGS
+variable to correspond with the flags available for the compiler being used.
+
+-------------------
+4. Running plot:
+
+ The plotting package can be run like this:
+
+   %  ./plot.x <options>
+
+ Execution is then driven by the options present, some of which are required.
+To see options available type:
+
+    % ./plot.x --help
+
+     To run the program, there are several arguments on the command line.
+The list of arguments and their defaults is as follows:
+
+   -i <filename>
+      The input filename which is required.
+
+   -o <filename>
+      The output filename (default is plot.gen).
+
+   -x <plane>
+   -y <plane>
+   -z <plane>
+      This creates a cutting plane through the mesh, where the argument plane
+      is between 0 and 1 inclusive.  This will result in a 2D plot of the
+      blocks intersected by the cutting plane.  The blocks are grouped by
+      their level of refinement.
+
+   -3
+      This causes all blocks to be output in 3D, with the blocks grouped
+      by the processor number that they are on.
+      balance at each refinement step.
+
+ One of -x, -y, -z, or -3 is required for plotting.
+
+-------------------
+5. The code:
+
+   plot.c    Controls the plotting step
+   read.c    Read information from miniAMR plot file
+   sort.c    Sort information for plotting
+   write.c   Write out sorted information in EXODUS format
+
+-- End README file.
+
+Courtenay T. Vaughan
+(ctvaugh@sandia.gov)
