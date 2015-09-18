@@ -33,8 +33,8 @@ int main(int argc, char **argv)
 
     srand(1331);
     for(int i = 0; i < 2*numranks; i++) {
-      int index1 = rand() % numranks/2;
-      int index2 = rand() % numranks/2;
+      int index1 = rand() % (numranks/2);
+      int index2 = rand() % (numranks/2);
       int temp = partners[index1];
       partners[index1] = partners[index2];
       partners[index2] = temp;
@@ -53,16 +53,17 @@ int main(int argc, char **argv)
   }
   free(partners);
 
-  //warm up
   int requests[2];
-  for(int i = 0; i < 10; i++) {
-    MPI_Irecv(answer,size,MPI_CHAR,partner,0,MPI_COMM_WORLD,&requests[0]);
-    MPI_Isend(question,size,MPI_CHAR,partner,0,MPI_COMM_WORLD,&requests[1]);
-    MPI_Waitall(2, requests, MPI_STATUSES_IGNORE);
-  }
-
   MPI_Barrier(MPI_COMM_WORLD);
+
+#if CMK_BIGSIM_CHARM
+  AMPI_Set_startevent(MPI_COMM_WORLD);
+#endif
   starttime = MPI_Wtime();
+#if CMK_BIGSIM_CHARM
+  if(!rank)
+    BgPrintf("Current time is %f\n");
+#endif
   for(int i = 0; i < numIter; i++) {
     MPI_Irecv(answer,size,MPI_CHAR,partner,0,MPI_COMM_WORLD,&requests[0]);
     MPI_Isend(question,size,MPI_CHAR,partner,0,MPI_COMM_WORLD,&requests[1]);
@@ -70,6 +71,13 @@ int main(int argc, char **argv)
   }
   MPI_Barrier(MPI_COMM_WORLD);
   endtime = MPI_Wtime();
+#if CMK_BIGSIM_CHARM
+  if(!rank)
+    BgPrintf("After loop Current time is %f\n");
+#else
+  if(!rank)
+    printf("After loop Current time is %f\n", MPI_Wtime() - starttime);
+#endif
   
   if(rank == 0)
     printf("[%d] Time for size %d is %lf : (%lf %lf)\n",rank,size,(endtime-starttime)/(numIter),endtime,starttime);
