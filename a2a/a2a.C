@@ -6,6 +6,18 @@
 #define MP_Y 1
 #define MP_Z 2
 
+#if CMK_BIGSIM_CHARM
+#include "shared-alloc.h"
+#include "blue.h"
+#include "cktiming.h"     
+
+void changeMessage(BgTimeLog *log)                  
+{                                                   
+  log->msgs[0]->msgsize = 5242880;            
+}
+
+#endif
+
 #define calc_pe(a,b,c)  ((a)+(b)*dims[MP_X]+(c)*dims[MP_X]*dims[MP_Y])
 
 int main(int argc, char **argv)
@@ -33,8 +45,14 @@ int main(int argc, char **argv)
 
   int largerGroup = (dims[MP_X] > dims[MP_Y]) ? dims[MP_X] : dims[MP_Y];
 
+#if CMK_BIGSIM_CHARM
+  char *sendbuf = (char*)shalloc(perrank * largerGroup, 1);
+  char *recvbuf = (char*)shalloc(perrank * largerGroup, 1);
+#else
   char *sendbuf = (char*)malloc(perrank * largerGroup);
   char *recvbuf = (char*)malloc(perrank * largerGroup);
+#endif
+
   sreq = new MPI_Request[largerGroup];
   rreq = new MPI_Request[largerGroup];
 
@@ -46,24 +64,27 @@ int main(int argc, char **argv)
   AMPI_Set_startevent(MPI_COMM_WORLD);
 #endif
   startTime = MPI_Wtime();
-  for (i = 0; i < MAX_ITER; i++) {
 #if CMK_BIGSIM_CHARM
-    if(!myrank)
-      BgPrintf("Current time is %f\n");
-#else
-    if(!myrank)
-      printf("Current time is %f\n", MPI_Wtime());
+  if(!myrank)
+    BgPrintf("Current time is %f\n");
 #endif
+  for (i = 0; i < MAX_ITER; i++) {
     off = 0;
     for(int ycoord = 1; ycoord < dims[MP_Y]; ycoord++) {
       MPI_Isend(&sendbuf[off], perrank, MPI_CHAR,
         calc_pe(myXcoord, (ycoord + myYcoord) % dims[MP_Y], myZcoord), 0,
         MPI_COMM_WORLD, &sreq[ycoord]);
+#if CMK_BIGSIM_CHARM
+      changeMessage(timeLine[timeLine.length() - 3]);
+#endif
       MPI_Irecv(&recvbuf[off], perrank, MPI_CHAR,
         calc_pe(myXcoord, (ycoord + myYcoord) % dims[MP_Y], myZcoord), 0,
         MPI_COMM_WORLD, &rreq[ycoord]);
       off += perrank;
     }
+#if CMK_BIGSIM_CHARM
+    BgAdvance(100);    
+#endif
     MPI_Waitall(dims[MP_Y] - 1, &sreq[1], MPI_STATUSES_IGNORE);
     MPI_Waitall(dims[MP_Y] - 1, &rreq[1], MPI_STATUSES_IGNORE);
     off = 0;
@@ -71,14 +92,21 @@ int main(int argc, char **argv)
       MPI_Isend(&sendbuf[off], perrank, MPI_CHAR,
         calc_pe((xcoord + myXcoord) % dims[MP_X], myYcoord, myZcoord), 0,
         MPI_COMM_WORLD, &sreq[xcoord]);
+#if CMK_BIGSIM_CHARM
+      changeMessage(timeLine[timeLine.length() - 3]);
+#endif
       MPI_Isend(&recvbuf[off], perrank, MPI_CHAR,
         calc_pe((xcoord + myXcoord) % dims[MP_X], myYcoord, myZcoord), 0,
         MPI_COMM_WORLD, &rreq[xcoord]);
       off += perrank;
     }
+#if CMK_BIGSIM_CHARM
+    BgAdvance(100);    
+#endif
     MPI_Waitall(dims[MP_X] - 1, &sreq[1], MPI_STATUSES_IGNORE);
     MPI_Waitall(dims[MP_X] - 1, &rreq[1], MPI_STATUSES_IGNORE);
   }
+  MPI_Barrier(MPI_COMM_WORLD);
   stopTime = MPI_Wtime();
 #if CMK_BIGSIM_CHARM
   if(!myrank)
