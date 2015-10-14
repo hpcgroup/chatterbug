@@ -65,6 +65,7 @@ int main(int argc, char **argv)
 #endif
   startTime = MPI_Wtime();
 #if CMK_BIGSIM_CHARM
+  BgTimeLine &timeLine = tTIMELINEREC.timeline;  
   if(!myrank)
     BgPrintf("Current time is %f\n");
 #endif
@@ -106,6 +107,7 @@ int main(int argc, char **argv)
     MPI_Waitall(dims[MP_X] - 1, &sreq[1], MPI_STATUSES_IGNORE);
     MPI_Waitall(dims[MP_X] - 1, &rreq[1], MPI_STATUSES_IGNORE);
   }
+  AMPI_Set_endevent();
   MPI_Barrier(MPI_COMM_WORLD);
   stopTime = MPI_Wtime();
 #if CMK_BIGSIM_CHARM
@@ -113,7 +115,7 @@ int main(int argc, char **argv)
     BgPrintf("After loop Current time is %f\n");
 #endif
 
-  if(myrank == 0) {
+  if(myrank == 0 && MAX_ITER != 0) {
     printf("Finished %d iterations\n",MAX_ITER);
     printf("Time elapsed per iteration for size %d: %f\n", perrank, (stopTime -
     startTime)/MAX_ITER);
