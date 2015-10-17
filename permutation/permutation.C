@@ -110,11 +110,12 @@ int main(int argc, char **argv)
 #if CMK_BIGSIM_CHARM
     changeMessage(timeLine[timeLine.length() - 3]);
 #endif
-    MPI_Waitall(2, requests, MPI_STATUSES_IGNORE);
 #if CMK_BIGSIM_CHARM
     BgAdvance(100);    
 #endif
+    MPI_Waitall(2, requests, MPI_STATUSES_IGNORE);
   }
+  AMPI_Set_endevent();
 #if CMK_BIGSIM_CHARM
   if(!rank)
     BgPrintf("Before barrier Current time is %f\n");
@@ -132,7 +133,7 @@ int main(int argc, char **argv)
     printf("After loop Current time is %f\n", MPI_Wtime() - starttime);
 #endif
   
-  if(rank == 0)
+  if(rank == 0 && numIter != 0)
     printf("[%d] Time for size %d is %lf : (%lf %lf)\n",rank,size,(endtime-starttime)/(numIter),endtime,starttime);
 
   MPI_Finalize();

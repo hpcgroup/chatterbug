@@ -96,7 +96,7 @@ int main(int argc, char **argv)
 #if CMK_BIGSIM_CHARM
       changeMessage(timeLine[timeLine.length() - 3]);
 #endif
-      MPI_Isend(&recvbuf[off], perrank, MPI_CHAR,
+      MPI_Irecv(&recvbuf[off], perrank, MPI_CHAR,
         calc_pe((xcoord + myXcoord) % dims[MP_X], myYcoord, myZcoord), 0,
         MPI_COMM_WORLD, &rreq[xcoord]);
       off += perrank;
