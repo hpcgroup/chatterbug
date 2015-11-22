@@ -115,8 +115,8 @@ int main(int argc, char **argv)
 #endif
     MPI_Waitall(2, requests, MPI_STATUSES_IGNORE);
   }
-  AMPI_Set_endevent();
 #if CMK_BIGSIM_CHARM
+  AMPI_Set_endevent();
   if(!rank)
     BgPrintf("Before barrier Current time is %f\n");
 #else
