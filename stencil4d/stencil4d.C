@@ -205,9 +205,13 @@ int main(int argc, char **argv) {
 
     MPI_Waitall(8, req, status);
 
+#if CMK_BIGSIM_CHARM
     BgAdvance(100);
+#endif
   }
+#if CMK_BIGSIM_CHARM
   AMPI_Set_endevent();
+#endif
   MPI_Barrier(MPI_COMM_WORLD);
 #if CMK_BIGSIM_CHARM
   if(!myRank)

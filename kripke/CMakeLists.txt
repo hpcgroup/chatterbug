@@ -111,7 +111,7 @@ add_subdirectory(src)
 
 # Setup the kripke target
 add_executable(kripke "src/kripke.cpp")
-set(TRACE_LIB "-L/soft/perftools/HPM/ -lmpitrace")
+#set(TRACE_LIB "-L/soft/perftools/HPM/ -lmpitrace")
 target_link_libraries(kripke ${KRIPKE_LIBS} ${KRIPKE_LIBS} ${TRACE_LIB})
 
 
