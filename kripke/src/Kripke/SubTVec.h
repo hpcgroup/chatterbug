@@ -37,6 +37,7 @@
 #include <algorithm>
 #include <vector>
 #include <stdlib.h>
+#include <shared-alloc.h>
 
 /**
  *  A transport vector (used for Psi and Phi, RHS, etc.)
@@ -50,9 +51,9 @@ struct SubTVec {
     groups(ngrps),
     directions(ndir_mom),
     zones(nzones),
-    elements(groups*directions*zones),
-    data_linear(elements)
+    elements(groups*directions*zones)
   {
+    data_linear = (double*)shalloc(2048*directions*groups*sizeof(double), 1);
     setupIndices(nesting, &data_linear[0]);
   }
 
@@ -213,7 +214,8 @@ struct SubTVec {
 
   int groups, directions, zones, elements;
   double *data_pointer;
-  std::vector<double> data_linear;
+  //std::vector<double> data_linear;
+  double* data_linear;
 };
 
 
