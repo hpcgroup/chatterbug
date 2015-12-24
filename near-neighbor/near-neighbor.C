@@ -61,11 +61,19 @@ int main(int argc, char **argv)
     sum_g = 0;
     while(sum > 0 && count > 0) {
       count--;
+#if SPREAD
+      int src = rand() % (numranks/2);
+#else
       int src = rand() % numranks;
+#endif
       if(degree[src] == 0) continue;
       int multby = 1;
+#if SPREAD
+      int dst = (numranks/2 + (rand() % (numranks/2))) % numranks;
+#else
       if(rand() % 2) multby = -1;
       int dst = ((src + multby * (rand() % neighborhood)) + numranks) % numranks;
+#endif
       if(degree[dst] == 0) continue;
       if(src == dst) continue;
       degree[src]--;
