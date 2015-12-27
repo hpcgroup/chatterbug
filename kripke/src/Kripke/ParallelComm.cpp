@@ -223,7 +223,14 @@ void ParallelComm::testRecieves(void){
     // Ask if either one or none of the recvs have completed?
     int index; // this will be the index of request that completed
     int complete_flag; // this is set to TRUE if somthing completed
-    MPI_Testany(num_requests, &recv_requests[0], &index, &complete_flag, &recv_status[0]);
+    std::vector<int> rlist = getReadyList();
+    if(rlist.size()) {
+      MPI_Testany(num_requests, &recv_requests[0], &index, &complete_flag, &recv_status[0]);
+    } else {
+      complete_flag = 1;
+      MPI_Waitany(num_requests, &recv_requests[0], &index, &recv_status[0]);
+      done = true;
+    }
 
     if(complete_flag != 0){
 

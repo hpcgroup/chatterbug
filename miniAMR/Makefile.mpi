@@ -13,7 +13,7 @@ CPPFLAGS = -I.
 CFLAGS = -O3 -DTHREAD_VAR= -DEXT_VAR=extern -swapglobals $(EXTRA)
 LDFLAGS = -swapglobals 
 endif
-LDLIBS = 
+LDLIBS = #-L/soft/perftools/HPM/ -lmpitrace
 
 EXEC = miniAMR.x
 

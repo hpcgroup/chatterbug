@@ -37,11 +37,15 @@
 #if USE_SHALLOC
 #include "shared-alloc.h"  
 #endif
+extern void summary_stop();
+extern void summary_start();
+
 int main(int argc, char** argv)
 {
    int i, ierr, object_num;
    int params[35];
    double *objs;
+   //summary_stop();
 #include "param.h"
 
    ierr = MPI_Init(&argc, &argv);
@@ -52,7 +56,6 @@ int main(int argc, char** argv)
    counter_malloc = 0;
    size_malloc = 0.0;
 
-   printf("in main\n");
    /* set initial values */
    if (!my_pe) {
       for (i = 1; i < argc; i++)
@@ -294,11 +297,12 @@ int main(int argc, char** argv)
 
    allocate();
 
+   //summary_start();
    driver();
-   printf("Done driver\n");
+   //summary_stop();
 
    profile();
-   printf("Memory used is %.2lf MB\n", CmiMemoryUsage()/(1024.0*1024));
+   //printf("Memory used is %.2lf MB\n", CmiMemoryUsage()/(1024.0*1024));
 
    deallocate();
 

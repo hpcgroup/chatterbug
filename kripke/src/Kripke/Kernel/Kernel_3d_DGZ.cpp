@@ -271,6 +271,7 @@ void Kernel_3d_DGZ::source(Grid_Data *grid_data){
   + (local_imax)*(local_jmax)*(k))
 
 void Kernel_3d_DGZ::sweep(Subdomain *sdom) {
+  return;
   int num_directions = sdom->num_directions;
   int num_groups = sdom->num_groups;
   int num_zones = sdom->num_zones;

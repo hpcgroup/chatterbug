@@ -75,7 +75,7 @@ void driver(void)
             t4 = timer();
             timer_comm_all += t4 - t3;
             for (var = start; var < (start+number); var++) {
-               stencil_calc(var);
+               //stencil_calc(var);
                t3 = timer();
                timer_calc_all += t3 - t4;
                if (checksum_freq && !(stage%checksum_freq)) {

@@ -78,9 +78,9 @@ void comm(int start, int num_comm, int stage)
             offset = comm_send_off[dir][comm_index[dir][i]+n];
             if (!nonblocking)
                offset -= comm_send_off[dir][comm_index[dir][i]];
-            pack_face(&send_buff[offset], comm_block[dir][comm_index[dir][i]+n],
+            /*pack_face(&send_buff[offset], comm_block[dir][comm_index[dir][i]+n],
                       comm_face_case[dir][comm_index[dir][i]+n], dir,
-                      start, num_comm);
+                      start, num_comm);*/
          }
          counter_face_send[dir] += comm_num[dir][i];
          t3 = timer();
@@ -101,7 +101,7 @@ void comm(int start, int num_comm, int stage)
       // While values are being sent over the mesh, go through and direct
       // blocks to exchange ghost values with other blocks that are on
       // processor.  Also apply boundary conditions for boundary of domain.
-      for (in = 0; in < sorted_index[num_refine+1]; in++) {
+      /*for (in = 0; in < sorted_index[num_refine+1]; in++) {
          n = sorted_list[in].n;
          bp = &blocks[n];
          if (bp->number >= 0)
@@ -144,17 +144,18 @@ void comm(int start, int num_comm, int stage)
                   exit(-1);
                }
             }
-      }
+      }*/
 
       for (i = 0; i < num_comm_partners[dir]; i++) {
          t2 = timer();
          MPI_Waitany(num_comm_partners[dir], request, &which, &status);
          t3 = timer();
          for (n = 0; n < comm_num[dir][which]; n++)
-          unpack_face(&recv_buff[comm_recv_off[dir][comm_index[dir][which]+n]],
+          /*unpack_face(&recv_buff[comm_recv_off[dir][comm_index[dir][which]+n]],
                       comm_block[dir][comm_index[dir][which]+n],
                       comm_face_case[dir][comm_index[dir][which]+n],
                       dir, start, num_comm);
+          */
          counter_face_recv[dir] += comm_num[dir][which];
          t4 = timer();
          timer_comm_wait[dir] += t3 - t2;

@@ -37,6 +37,7 @@
 #include <Kripke/Grid.h>
 #include <vector>
 #include <stdio.h>
+extern "C" void BgMark(const char *str);
 
 
 /**
@@ -59,7 +60,7 @@ int SweepSolver (Grid_Data *grid_data, bool block_jacobi)
     /*
      * Compute the RHS:  rhs = LPlus*S*L*psi + Q
      */
-
+    /* 
     // Discrete to Moments transformation (phi = L*psi)
     {
       BLOCK_TIMER(grid_data->timing, LTimes);
@@ -83,10 +84,11 @@ int SweepSolver (Grid_Data *grid_data, bool block_jacobi)
       BLOCK_TIMER(grid_data->timing, LPlusTimes);
       kernel->LPlusTimes(grid_data);
     }
-
+    */
     /*
      * Sweep (psi = Hinv*rhs)
      */
+    BgMark("SolveCompute");
     {
       BLOCK_TIMER(grid_data->timing, Sweep);
 
@@ -168,7 +170,8 @@ void SweepSubdomains (std::vector<int> subdomain_list, Grid_Data *grid_data, boo
       {
         BLOCK_TIMER(grid_data->timing, Sweep_Kernel);
         // Perform subdomain sweep
-        grid_data->kernel->sweep(&sdom);
+        //grid_data->kernel->sweep(&sdom);
+        BgMark("SweepCompute");
       }
 
       // Mark as complete (and do any communication)

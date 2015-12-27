@@ -37,7 +37,9 @@
 #include <algorithm>
 #include <vector>
 #include <stdlib.h>
+#if CMK_BIGSIM_CHARM
 #include <shared-alloc.h>
+#endif
 
 /**
  *  A transport vector (used for Psi and Phi, RHS, etc.)
@@ -53,7 +55,12 @@ struct SubTVec {
     zones(nzones),
     elements(groups*directions*zones)
   {
-    data_linear = (double*)shalloc(2048*directions*groups*sizeof(double), 1);
+#if CMK_BIGSIM_CHARM
+    data_linear = (double*)shalloc(4096*directions*groups*sizeof(double), 1);
+    //data_linear = (double*)malloc(zones*directions*groups*sizeof(double));
+#else
+    data_linear = (double*)malloc(zones*directions*groups*sizeof(double));
+#endif
     setupIndices(nesting, &data_linear[0]);
   }
 
