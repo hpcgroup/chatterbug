@@ -137,7 +137,7 @@ Grid_Data::Grid_Data(Input_Variables *input_vars)
 
         // Create phi and phi_out, if this is the first of this zs
         if(phi[zs] == NULL){
-          printf("Call with %d\n", sdom.num_zones);
+          //printf("Call with %d\n", sdom.num_zones);
           phi[zs] = new SubTVec(nest, total_num_groups, total_num_moments, sdom.num_zones);
           phi_out[zs] = new SubTVec(nest, total_num_groups, total_num_moments, sdom.num_zones);
         }

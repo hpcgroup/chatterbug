@@ -1,0 +1,8 @@
+
+Subcom creation is disabled. BigSim + Comm_split is not working. Always use uniform refine.
+
+Run command example:
+
+runjob -p16 -n 512 --block $COBALT_PARTNAME --envs BG_SHAREDMEMSIZE=512MB : ./miniAMR.x --num_refine 3 --max_blocks 600 --npx 8 --npy 8 --npz 8 --nx 8 --ny 8 --nz 8 --num_objects 1 --object 2 0 -1.71 -1.71 -1.71 0.04 0.04 0.04 1.7 1.7 1.7 0.0 0.0 0.0 --refine_freq 1 --num_tsteps 1  --uniform_refine 1 --lb_opt 0 --stencil 27 +x8 +y8 +z8
+
+
