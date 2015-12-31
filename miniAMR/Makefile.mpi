@@ -1,12 +1,13 @@
-CC   = /scratch/nikhil/charm-master/netlrts-linux-x86_64-bigemulator/bin/ampicc
-LD   = /scratch/nikhil/charm-master/netlrts-linux-x86_64-bigemulator/bin/ampiCC
+CC   = /u/staff/nikhilj/charm/gni-crayxe-bigemulator/bin/ampicc
+CXX   = /u/staff/nikhilj/charm/gni-crayxe-bigemulator/bin/ampiCC
+LD   = /u/staff/nikhilj/charm/gni-crayxe-bigemulator/bin/ampiCC
 ifeq ($(TLS), yes)
 CPPFLAGS = -I. 
 CFLAGS = -O3  -DTHREAD_VAR=__thread -DEXT_VAR=extern -tlsglobals $(EXTRA)
 LDFLAGS = -tlsglobals 
 else ifeq ($(DEF), yes)
 CPPFLAGS = -I.
-CFLAGS = -O3 -DTHREAD_VAR= -DEXT_VAR= $(EXTRA)
+CFLAGS = -O3 -DTHREAD_VAR= -DEXT_VAR=extern $(EXTRA)
 LDFLAGS = 
 else
 CPPFLAGS = -I.
@@ -14,18 +15,22 @@ CFLAGS = -O3 -DTHREAD_VAR= -DEXT_VAR=extern -swapglobals $(EXTRA)
 LDFLAGS = -swapglobals 
 endif
 LDLIBS = #-L/soft/perftools/HPM/ -lmpitrace
+LDLIBS = -g #-L/u/staff/nikhilj/codes/topoAPI/lib -ltopoprofiler -ltmgr
 
 EXEC = miniAMR.x
 
 OBJS = block.o check_sum.o comm_block.o comm.o comm_parent.o comm_refine.o \
        comm_util.o driver.o init.o main.o move.o pack.o plot.o profile.o \
-       rcb.o refine.o stencil.o target.o util.o allvariables.o
+       rcb.o refine.o stencil.o target.o util.o allvariables.o msg_change.o
 
 $(EXEC): $(OBJS)
 	$(LD) $(LDFLAGS) -o $@ $(OBJS) $(LDLIBS)
 
 .c.o:
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c $<
+
+.C.o:
+	$(CXX) $(CPPFLAGS) $(CFLAGS) -c $<
 
 clean:
 	rm *.o miniAMR.x

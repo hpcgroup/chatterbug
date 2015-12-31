@@ -1,5 +1,5 @@
 
-Subcom creation is disabled. BigSim + Comm_split is not working. Always use uniform refine.
+Works with TLS globals on Cray systems.
 
 Run command example:
 

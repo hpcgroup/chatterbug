@@ -144,11 +144,10 @@ void init(void)
          else
             npz1 /= fact;
       num /= fact;
-      //set = me[n]/num;
-      //MPI_Comm_split(comms[n], set, me[n], &comms[n+1]);
-      //MPI_Barrier(MPI_COMM_WORLD);
-      //MPI_Comm_rank(comms[n+1], &me[n+1]);
-      //MPI_Comm_size(comms[n+1], &np[n+1]);
+      set = me[n]/num;
+      MPI_Comm_split(comms[n], set, me[n], &comms[n+1]);
+      MPI_Comm_rank(comms[n+1], &me[n+1]);
+      MPI_Comm_size(comms[n+1], &np[n+1]);
       for (j = pes-1; j >= 0; j--)
          for (k = 0; k < fact; k++) {
             m = j*fact + k;

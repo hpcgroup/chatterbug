@@ -58,6 +58,10 @@ void driver(void)
 
    nb_min = nb_max = global_active;
 
+#if CMK_BIGSIM_CHARM
+   MPI_Set_trace_status(1);
+   AMPI_Set_startevent(MPI_COMM_WORLD);
+#endif
    for (comm_stage = 0, ts = 1; ts <= num_tsteps; ts++) {
       for (stage = 0; stage < stages_per_ts; stage++, comm_stage++) {
          total_blocks += global_active;
@@ -96,6 +100,13 @@ void driver(void)
             }
          }
       }
+#if CMK_BIGSIM_CHARM
+      AMPI_Set_endevent();
+      MPI_Barrier(MPI_COMM_WORLD);
+      if(!my_pe)
+        BgPrintf("After loop Current time is %f\n");
+      MPI_Set_trace_status(0);
+#endif
 
       if (num_refine && !uniform_refine) {
          move();

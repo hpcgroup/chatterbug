@@ -32,7 +32,8 @@
 #include "comm.h"
 #include "timer.h"
 #include "proto.h"
-
+  
+extern void changeMessage(int size);
 // The routines in this file are used in the communication of ghost values
 // between blocks, both on processor and off processor.
 
@@ -56,9 +57,15 @@ void comm(int start, int num_comm, int stage)
       type = dir;
       t1 = timer();
       for (i = 0; i < num_comm_partners[dir]; i++) {
+#if !USE_SHALLOC
          MPI_Irecv(&recv_buff[comm_recv_off[dir][comm_index[dir][i]]],
                    recv_size[dir][i], MPI_DOUBLE,
                    comm_partner[dir][i], type, MPI_COMM_WORLD, &request[i]);
+#else
+         MPI_Irecv(&recv_buff[comm_recv_off[dir][comm_index[dir][i]]],
+                   1, MPI_DOUBLE,
+                   comm_partner[dir][i], type, MPI_COMM_WORLD, &request[i]);
+#endif
          counter_halo_recv[dir]++;
          size_mesg_recv[dir] += (double) recv_size[dir][i]*sizeof(double);
       }
@@ -84,11 +91,18 @@ void comm(int start, int num_comm, int stage)
          }
          counter_face_send[dir] += comm_num[dir][i];
          t3 = timer();
-         if (nonblocking)
+         if (nonblocking) {
+#if !USE_SHALLOC
             MPI_Isend(&send_buff[comm_send_off[dir][comm_index[dir][i]]],
                       send_size[dir][i], MPI_DOUBLE, comm_partner[dir][i],
                       type, MPI_COMM_WORLD, &s_req[i]);
-         else
+#else
+            MPI_Isend(&send_buff[comm_send_off[dir][comm_index[dir][i]]],
+                      1, MPI_DOUBLE, comm_partner[dir][i],
+                      type, MPI_COMM_WORLD, &s_req[i]);
+            changeMessage(send_size[dir][i]);
+#endif
+         } else
             MPI_Send(send_buff, send_size[dir][i], MPI_DOUBLE,
                      comm_partner[dir][i], type, MPI_COMM_WORLD);
          counter_halo_send[dir]++;

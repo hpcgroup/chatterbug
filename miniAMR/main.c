@@ -49,6 +49,7 @@ int main(int argc, char** argv)
 #include "param.h"
 
    ierr = MPI_Init(&argc, &argv);
+   MPI_Set_trace_status(0);
    ierr = MPI_Errhandler_set(MPI_COMM_WORLD, MPI_ERRORS_ARE_FATAL);
    ierr = MPI_Comm_rank(MPI_COMM_WORLD, &my_pe);
    ierr = MPI_Comm_size(MPI_COMM_WORLD, &num_pes);
@@ -302,7 +303,7 @@ int main(int argc, char** argv)
    //summary_stop();
 
    profile();
-   //printf("Memory used is %.2lf MB\n", CmiMemoryUsage()/(1024.0*1024));
+   if(my_pe == 0) printf("Memory used is %.2lf MB\n", CmiMemoryUsage()/(1024.0*1024));
 
    deallocate();
 
@@ -376,16 +377,28 @@ void allocate(void)
 
    for (n = 0; n < max_num_blocks; n++) {
       blocks[n].number = -1;
+#if USE_SHALLOC
+      blocks[n].array = (double ****) shalloc(num_vars*sizeof(double ***), 3); 
+#else
       blocks[n].array = (double ****) ma_malloc(num_vars*sizeof(double ***),
                                                 __FILE__, __LINE__);
+#endif
       for (m = 0; m < num_vars; m++) {
+#if USE_SHALLOC
+        blocks[n].array[m] = (double ***) shalloc((x_block_size+2)*sizeof(double **), 4);
+#else
          blocks[n].array[m] = (double ***)
                               ma_malloc((x_block_size+2)*sizeof(double **),
                                         __FILE__, __LINE__);
+#endif
          for (i = 0; i < x_block_size+2; i++) {
+#if USE_SHALLOC
+            blocks[n].array[m][i] = (double **) shalloc((y_block_size+2)*sizeof(double *),5);
+#else
             blocks[n].array[m][i] = (double **)
                                    ma_malloc((y_block_size+2)*sizeof(double *),
                                              __FILE__, __LINE__);
+#endif
             for (j = 0; j < y_block_size+2; j++)
 #if USE_SHALLOC
               blocks[n].array[m][i][j] = (double *)shalloc(
@@ -538,6 +551,7 @@ void allocate(void)
       r_buf_size = 2*s_buf_size;
    }
 #if USE_SHALLOC
+#warning Using SHALLOC
    recv_buff = (double *) shalloc(r_buf_size*sizeof(double), 2);
    send_buff = (double *) shalloc(s_buf_size*sizeof(double), 2);
 #else
@@ -559,11 +573,11 @@ void deallocate(void)
          for (i = 0; i < x_block_size+2; i++) {
             for (j = 0; j < y_block_size+2; j++)
                ;//free(blocks[n].array[m][i][j]);
-            free(blocks[n].array[m][i]);
+            //free(blocks[n].array[m][i]);
          }
-         free(blocks[n].array[m]);
+         //free(blocks[n].array[m]);
       }
-      free(blocks[n].array);
+      //free(blocks[n].array);
    }
    free(blocks);
 
