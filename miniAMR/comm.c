@@ -32,6 +32,9 @@
 #include "comm.h"
 #include "timer.h"
 #include "proto.h"
+#if CMK_BIGSIM_CHARM
+extern void BgMark(const char *str);
+#endif
   
 extern void changeMessage(int size);
 // The routines in this file are used in the communication of ghost values
@@ -81,6 +84,9 @@ void comm(int start, int num_comm, int stage)
 **** one large send buffer -- can pack and send for a neighbor and reuse */
       for (i = 0; i < num_comm_partners[dir]; i++) {
          t2 = timer();
+#if CMK_BIGSIM_CHARM
+         BgMark("facePUP");
+#endif
          for (n = 0; n < comm_num[dir][i]; n++) {
             offset = comm_send_off[dir][comm_index[dir][i]+n];
             if (!nonblocking)
@@ -164,7 +170,10 @@ void comm(int start, int num_comm, int stage)
          t2 = timer();
          MPI_Waitany(num_comm_partners[dir], request, &which, &status);
          t3 = timer();
-         for (n = 0; n < comm_num[dir][which]; n++)
+#if CMK_BIGSIM_CHARM
+         BgMark("facePUP");
+#endif
+         for (n = 0; n < comm_num[dir][which]; n++);
           /*unpack_face(&recv_buff[comm_recv_off[dir][comm_index[dir][which]+n]],
                       comm_block[dir][comm_index[dir][which]+n],
                       comm_face_case[dir][comm_index[dir][which]+n],

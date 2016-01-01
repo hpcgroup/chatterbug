@@ -32,6 +32,9 @@
 #include "comm.h"
 #include "timer.h"
 #include "proto.h"
+#if CMK_BIGSIM_CHARM
+extern void BgMark(const char *str);
+#endif
 
 // Main driver for program.
 void driver(void)
@@ -59,7 +62,9 @@ void driver(void)
    nb_min = nb_max = global_active;
 
 #if CMK_BIGSIM_CHARM
+   MPI_Barrier(MPI_COMM_WORLD);
    MPI_Set_trace_status(1);
+   MPI_Barrier(MPI_COMM_WORLD);
    AMPI_Set_startevent(MPI_COMM_WORLD);
 #endif
    for (comm_stage = 0, ts = 1; ts <= num_tsteps; ts++) {
@@ -78,6 +83,9 @@ void driver(void)
             comm(start, number, comm_stage);
             t4 = timer();
             timer_comm_all += t4 - t3;
+#if CMK_BIGSIM_CHARM
+            BgMark("Stencil");
+#endif
             for (var = start; var < (start+number); var++) {
                //stencil_calc(var);
                t3 = timer();
@@ -106,6 +114,7 @@ void driver(void)
       if(!my_pe)
         BgPrintf("After loop Current time is %f\n");
       MPI_Set_trace_status(0);
+      MPI_Barrier(MPI_COMM_WORLD);
 #endif
 
       if (num_refine && !uniform_refine) {

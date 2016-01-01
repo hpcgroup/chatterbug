@@ -48,9 +48,11 @@ int main(int argc, char** argv)
    //summary_stop();
 #include "param.h"
 
-   ierr = MPI_Init(&argc, &argv);
+    ierr = MPI_Init(&argc, &argv);
 #if CMK_BIGSIM_CHARM
-   MPI_Set_trace_status(0);
+    MPI_Barrier(MPI_COMM_WORLD);
+    MPI_Set_trace_status(0);
+    MPI_Barrier(MPI_COMM_WORLD);
 #endif
    ierr = MPI_Errhandler_set(MPI_COMM_WORLD, MPI_ERRORS_ARE_FATAL);
    ierr = MPI_Comm_rank(MPI_COMM_WORLD, &my_pe);
