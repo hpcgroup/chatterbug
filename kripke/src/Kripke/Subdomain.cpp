@@ -145,10 +145,10 @@ void Subdomain::setup(int sdom_id, Input_Variables *input_vars, int gs, int ds, 
     std::pair<double, double> dim_extent = layout->getSpatialExtents(sdom_id, dim);
     zeros[dim] = dim_extent.first;
     double dx = (dim_extent.second-dim_extent.first)/(double)nzones[dim];
-    deltas[dim].resize(nzones[dim]+2);
-    for(int z = 0;z < nzones[dim]+2;++ z){
-      deltas[dim][z] = dx;
-    }
+    //deltas[dim].resize(nzones[dim]+2);
+    //for(int z = 0;z < nzones[dim]+2;++ z){
+    //  deltas[dim][z] = dx;
+    //}
   }
 
   // allocate storage for the sweep boundary data (upwind and downwind share same buffer)
@@ -162,11 +162,11 @@ void Subdomain::setup(int sdom_id, Input_Variables *input_vars, int gs, int ds, 
   old_plane_data[2] = new SubTVec(kernel->nestingPsi(), num_groups, num_directions, nzones[0] * nzones[1]);
 
   // allocate the storage for solution and source terms
-  psi = new SubTVec(kernel->nestingPsi(), num_groups, num_directions, num_zones);
-  psi->clear(0.0);
-  rhs = new SubTVec(kernel->nestingPsi(), num_groups, num_directions, num_zones);
-  sigt = new SubTVec(kernel->nestingSigt(), num_groups, 1, num_zones);
-  sigt->clear(0.0);
+  //psi = new SubTVec(kernel->nestingPsi(), num_groups, num_directions, num_zones);
+  //psi->clear(0.0);
+  //rhs = new SubTVec(kernel->nestingPsi(), num_groups, num_directions, num_zones);
+  //sigt = new SubTVec(kernel->nestingSigt(), num_groups, 1, num_zones);
+  //sigt->clear(0.0);
 
   computeSweepIndexSet();
 
@@ -186,7 +186,7 @@ void Subdomain::setup(int sdom_id, Input_Variables *input_vars, int gs, int ds, 
   int zone_id = 0;
   double pz = zeros[2];
 
-  for (int k = 0; k < nzones[2]; k++) {
+  /*for (int k = 0; k < nzones[2]; k++) {
     double sdz = deltas[2][k+1] / (double)(num_subsamples+1);
     double py = zeros[1];
 
@@ -198,7 +198,7 @@ void Subdomain::setup(int sdom_id, Input_Variables *input_vars, int gs, int ds, 
         double sdx = deltas[0][i+1] / (double)(num_subsamples+1);
 
         double zone_volume = deltas[0][i+1] * deltas[1][j+1] * deltas[2][k+1];
-        volume.push_back(zone_volume);
+        //volume.push_back(zone_volume);
 
         // subsample probe the geometry to get our materials
         double frac[3] = {0.0, 0.0, 0.0}; // fraction of both materials
@@ -226,20 +226,20 @@ void Subdomain::setup(int sdom_id, Input_Variables *input_vars, int gs, int ds, 
           if(frac[mat] > 0.0){
             nmixed ++;
             if(nmixed == 1){
-              zones_to_mixed.push_back(mixed_to_zones.size());
+              //zones_to_mixed.push_back(mixed_to_zones.size());
             }
-            mixed_to_zones.push_back(zone_id);
-            mixed_material.push_back(mat);
-            mixed_fraction.push_back(frac[mat]);
+            //mixed_to_zones.push_back(zone_id);
+            //mixed_material.push_back(mat);
+            //mixed_fraction.push_back(frac[mat]);
             reg_volume[mat] += frac[mat] * zone_volume;
             
             // initialize background sigt
             for(int g = 0;g < num_groups;++ g){
-              (*sigt)(g,0,zone_id) += frac[mat] * input_vars->sigt[mat];
+              //(*sigt)(g,0,zone_id) += frac[mat] * input_vars->sigt[mat];
             }
           }
         }
-        num_mixed.push_back(nmixed);
+        //num_mixed.push_back(nmixed);
 
         // increment zone
         px += deltas[0][i+1];
@@ -249,6 +249,7 @@ void Subdomain::setup(int sdom_id, Input_Variables *input_vars, int gs, int ds, 
     }
     pz += deltas[2][k+1];
   }
+  */
 }
 
 void Subdomain::setVars(SubTVec *ell_ptr, SubTVec *ell_plus_ptr,

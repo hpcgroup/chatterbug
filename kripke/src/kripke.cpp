@@ -53,7 +53,7 @@
 #include </bgsys/drivers/ppcfloor/spi/include/kernel/location.h>
 #include </bgsys/drivers/ppcfloor/spi/include/kernel/memory.h>
 #endif
-
+#include "charm++.h"
 
 void usage(void){
   int myid;
@@ -208,6 +208,9 @@ int main(int argc, char **argv) {
    * Initialize MPI
    */
   MPI_Init(&argc, &argv);
+  MPI_Barrier(MPI_COMM_WORLD);
+  MPI_Set_trace_status(0);
+  MPI_Barrier(MPI_COMM_WORLD);
   int myid;
   MPI_Comm_rank(MPI_COMM_WORLD, &myid);
   int num_tasks;
@@ -437,7 +440,7 @@ int main(int argc, char **argv) {
     // Allocate problem 
     Grid_Data *grid_data = new Grid_Data(&vars);
 
-    grid_data->timing.setPapiEvents(papi_names);
+    //grid_data->timing.setPapiEvents(papi_names);
 
     // Run the solver
     SweepSolver(grid_data, vars.parallel_method == PMETHOD_BJ);
@@ -450,12 +453,12 @@ int main(int argc, char **argv) {
 #endif
 
     // Print Timing Info
-    int myid;
-    MPI_Comm_rank(MPI_COMM_WORLD, &myid);
-    if(myid == 0){
-      grid_data->timing.print();
-      printf("\n\n");
-    }
+    //int myid;
+    //MPI_Comm_rank(MPI_COMM_WORLD, &myid);
+    //if(myid == 0){
+    //  grid_data->timing.print();
+    //  printf("\n\n");
+    //}
 
     // Cleanup 
     delete grid_data;
@@ -487,9 +490,10 @@ int main(int argc, char **argv) {
 #endif
 #endif
   // Print memory info
-  if(myid == 0 && heap_mb >= 0.0){
-    printf("Bytes allocated: %lf MB\n", heap_mb);
-    printf("Heap Size      : %lf MB\n", hwm_mb);
+  if(myid == 0){
+    printf("Memory used : %lf MB\n", CmiMemoryUsage());
+    //printf("Bytes allocated: %lf MB\n", heap_mb);
+    //printf("Heap Size      : %lf MB\n", hwm_mb);
 
   }
   

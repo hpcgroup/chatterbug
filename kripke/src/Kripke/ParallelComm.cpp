@@ -35,6 +35,12 @@
 #include <Kripke/Grid.h>
 #include <Kripke/Subdomain.h>
 #include <Kripke/SubTVec.h>
+#include "cktiming.h"
+
+void changeMessage(BgTimeLog *log, int size)
+{
+  log->msgs[0]->msgsize = size;
+}
 
 ParallelComm::ParallelComm(Grid_Data *grid_data_ptr) :
   grid_data(grid_data_ptr)
@@ -131,7 +137,9 @@ void ParallelComm::postRecvs(int sdom_id, Subdomain &sdom){
     int tag = computeTag(mpi_rank, sdom_id);
 
     // Post the recieve
-    MPI_Irecv(sdom.plane_data[dim]->ptr(), sdom.plane_data[dim]->elements, MPI_DOUBLE, sdom.upwind[dim].mpi_rank,
+    //MPI_Irecv(sdom.plane_data[dim]->ptr(), sdom.plane_data[dim]->elements, MPI_DOUBLE, sdom.upwind[dim].mpi_rank,
+    //  tag, MPI_COMM_WORLD, &recv_requests[recv_requests.size()-1]);
+    MPI_Irecv(sdom.plane_data[dim]->ptr(), 1, MPI_DOUBLE, sdom.upwind[dim].mpi_rank,
       tag, MPI_COMM_WORLD, &recv_requests[recv_requests.size()-1]);
 
     // increment number of dependencies
@@ -185,8 +193,11 @@ void ParallelComm::postSends(Subdomain *sdom, double *src_buffers[3]){
     int tag = computeTag(sdom->downwind[dim].mpi_rank, sdom->downwind[dim].subdomain_id);
 
     // Post the send
-    MPI_Isend(src_buffers[dim], sdom->plane_data[dim]->elements, MPI_DOUBLE, sdom->downwind[dim].mpi_rank,
+    //MPI_Isend(src_buffers[dim], sdom->plane_data[dim]->elements, MPI_DOUBLE, sdom->downwind[dim].mpi_rank,
+    //  tag, MPI_COMM_WORLD, &send_requests[send_requests.size()-1]);
+    MPI_Isend(src_buffers[dim], 1, MPI_DOUBLE, sdom->downwind[dim].mpi_rank,
       tag, MPI_COMM_WORLD, &send_requests[send_requests.size()-1]);
+    changeMessage(tTIMELINEREC.timeline[tTIMELINEREC.timeline.length() - 3], sdom->plane_data[dim]->elements * sizeof(double));
   }
 }
 

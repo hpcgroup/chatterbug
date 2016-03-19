@@ -55,7 +55,11 @@ int SweepSolver (Grid_Data *grid_data, bool block_jacobi)
 
   // Loop over iterations
   double part_last = 0.0;
+  MPI_Barrier(MPI_COMM_WORLD);
+  MPI_Set_trace_status(1);
+  AMPI_Set_startevent(MPI_COMM_WORLD);
   for(int iter = 0;iter < grid_data->niter;++ iter){
+    if(!mpi_rank) BgPrintf("Current time is %f\n");
 
     /*
      * Compute the RHS:  rhs = LPlus*S*L*psi + Q
@@ -119,12 +123,19 @@ int SweepSolver (Grid_Data *grid_data, bool block_jacobi)
       }
     }
 
-    double part = grid_data->particleEdit();
+    //double part = grid_data->particleEdit();
+    double part = 0;
     if(mpi_rank==0){
       printf("iter %d: particle count=%e, change=%e\n", iter, part, (part-part_last)/part);
     }
     part_last = part;
   }
+  AMPI_Set_endevent();
+  MPI_Barrier(MPI_COMM_WORLD);
+  if(!mpi_rank)
+    BgPrintf("After loop Current time is %f\n");
+  MPI_Set_trace_status(0);
+  MPI_Barrier(MPI_COMM_WORLD);
   return(0);
 }
 

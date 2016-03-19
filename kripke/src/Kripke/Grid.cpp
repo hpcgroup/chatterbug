@@ -96,22 +96,22 @@ Grid_Data::Grid_Data(Input_Variables *input_vars)
 
   // Setup scattering transfer matrix for 3 materials  
 
-  sigs = new SubTVec(kernel->nestingSigs(), total_num_groups*total_num_groups, legendre_order+1, 3);
+  //sigs = new SubTVec(kernel->nestingSigs(), total_num_groups*total_num_groups, legendre_order+1, 3);
 
   // Set to isotropic scattering given user inputs
-  sigs->clear(0.0);
-  for(int mat = 0;mat < 3;++ mat){
-    for(int g = 0;g < total_num_groups;++ g){
-      int idx_g_gp = g*total_num_groups + g;
-      (*sigs)(idx_g_gp, 0, mat) = input_vars->sigs[mat];
-    }
-  }
+  //sigs->clear(0.0);
+  //for(int mat = 0;mat < 3;++ mat){
+  //  for(int g = 0;g < total_num_groups;++ g){
+  //    int idx_g_gp = g*total_num_groups + g;
+  //    (*sigs)(idx_g_gp, 0, mat) = input_vars->sigs[mat];
+  //  }
+  //}
 
   // just allocate pointer vectors, we will allocate them below
-  ell.resize(num_direction_sets, NULL);
-  ell_plus.resize(num_direction_sets, NULL);
-  phi.resize(num_zone_sets, NULL);
-  phi_out.resize(num_zone_sets, NULL);
+  //ell.resize(num_direction_sets, NULL);
+  //ell_plus.resize(num_direction_sets, NULL);
+  //phi.resize(num_zone_sets, NULL);
+  //phi_out.resize(num_zone_sets, NULL);
 
   // Initialize Subdomains
   zs_to_sdomid.resize(num_zone_sets);
@@ -128,19 +128,19 @@ Grid_Data::Grid_Data(Input_Variables *input_vars)
 
         // Create ell and ell_plus, if this is the first of this ds
         bool compute_ell = false;
-        if(ell[ds] == NULL){
-          ell[ds] = new SubTVec(kernel->nestingEll(), total_num_moments, sdom.num_directions, 1);
-          ell_plus[ds] = new SubTVec(kernel->nestingEllPlus(), total_num_moments, sdom.num_directions, 1);
+        //if(ell[ds] == NULL){
+        //  ell[ds] = new SubTVec(kernel->nestingEll(), total_num_moments, sdom.num_directions, 1);
+        //  ell_plus[ds] = new SubTVec(kernel->nestingEllPlus(), total_num_moments, sdom.num_directions, 1);
 
-          compute_ell = true;
-        }
+        //  compute_ell = true;
+        //}
 
         // Create phi and phi_out, if this is the first of this zs
-        if(phi[zs] == NULL){
-          //printf("Call with %d\n", sdom.num_zones);
-          phi[zs] = new SubTVec(nest, total_num_groups, total_num_moments, sdom.num_zones);
-          phi_out[zs] = new SubTVec(nest, total_num_groups, total_num_moments, sdom.num_zones);
-        }
+        //if(phi[zs] == NULL){
+        //  //printf("Call with %d\n", sdom.num_zones);
+        //  phi[zs] = new SubTVec(nest, total_num_groups, total_num_moments, sdom.num_zones);
+        //  phi_out[zs] = new SubTVec(nest, total_num_groups, total_num_moments, sdom.num_zones);
+        //}
 
         // setup zs to sdom mapping
         if(gs == 0 && ds == 0){
@@ -148,12 +148,12 @@ Grid_Data::Grid_Data(Input_Variables *input_vars)
         }
 
         // Set the variables for this subdomain
-        sdom.setVars(ell[ds], ell_plus[ds], phi[zs], phi_out[zs]);
+        //sdom.setVars(ell[ds], ell_plus[ds], phi[zs], phi_out[zs]);
 
-        if(compute_ell){
-          // Compute the L and L+ matrices
-          sdom.computeLLPlus(legendre_order);
-        }
+        //if(compute_ell){
+        //  // Compute the L and L+ matrices
+        //  sdom.computeLLPlus(legendre_order);
+        //}
       }
     }
   }
@@ -165,47 +165,47 @@ Grid_Data::Grid_Data(Input_Variables *input_vars)
   // and get each materials volume
   long long vec_size[4] = {0,0,0,0};
   double vec_volume[3] = {0.0, 0.0, 0.0};
-  for(int sdom_id = 0;sdom_id < subdomains.size();++sdom_id){
-    Subdomain &sdom = subdomains[sdom_id];
-    vec_size[0] += sdom.psi->elements;
-    vec_size[1] += sdom.psi->elements;
-  }
-  for(int zs = 0;zs < num_zone_sets;++ zs){
-    vec_size[2] += phi[zs]->elements;
-    vec_size[3] += phi_out[zs]->elements;
-    int sdom_id = zs_to_sdomid[zs];
-    for(int mat = 0;mat < 3;++ mat){
-      vec_volume[mat] += subdomains[sdom_id].reg_volume[mat];
-    }
-  }
+  //for(int sdom_id = 0;sdom_id < subdomains.size();++sdom_id){
+  //  Subdomain &sdom = subdomains[sdom_id];
+  //  vec_size[0] += sdom.psi->elements;
+  //  vec_size[1] += sdom.psi->elements;
+  //}
+  //for(int zs = 0;zs < num_zone_sets;++ zs){
+  //  vec_size[2] += phi[zs]->elements;
+  //  vec_size[3] += phi_out[zs]->elements;
+  //  int sdom_id = zs_to_sdomid[zs];
+  //  for(int mat = 0;mat < 3;++ mat){
+  //    vec_volume[mat] += subdomains[sdom_id].reg_volume[mat];
+  //  }
+  //}
 
-  long long global_size[4];
-  MPI_Reduce(vec_size, global_size, 4, MPI_LONG_LONG_INT, MPI_SUM, 0, MPI_COMM_WORLD);
+  //long long global_size[4];
+  //MPI_Reduce(vec_size, global_size, 4, MPI_LONG_LONG_INT, MPI_SUM, 0, MPI_COMM_WORLD);
 
-  double global_volume[3];
-  MPI_Reduce(vec_volume, global_volume, 3, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+  //double global_volume[3];
+  //MPI_Reduce(vec_volume, global_volume, 3, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
 
-  int mpi_rank;
-  MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
-  if(mpi_rank == 0){
-    printf("Unknown counts: psi=%ld, rhs=%ld, phi=%ld, phi_out=%ld\n",
-      (long)global_size[0], (long)global_size[1], (long)global_size[2], (long)global_size[3]);
-    printf("Region volumes: Reg1=%e, Reg2=%e, Reg3=%e\n",
-        global_volume[0], global_volume[1], global_volume[2]);
-  }
+  //int mpi_rank;
+  //MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
+  //if(mpi_rank == 0){
+  //  printf("Unknown counts: psi=%ld, rhs=%ld, phi=%ld, phi_out=%ld\n",
+  //    (long)global_size[0], (long)global_size[1], (long)global_size[2], (long)global_size[3]);
+  //  printf("Region volumes: Reg1=%e, Reg2=%e, Reg3=%e\n",
+  //      global_volume[0], global_volume[1], global_volume[2]);
+  //}
 }
 
 Grid_Data::~Grid_Data(){
   delete kernel;
   for(int zs = 0;zs < num_zone_sets;++ zs){
-    delete phi[zs];
-    delete phi_out[zs];
+    //delete phi[zs];
+    //delete phi_out[zs];
   }
   for(int ds = 0;ds < num_direction_sets;++ ds){
-    delete ell[ds];
-    delete ell_plus[ds];
+    //delete ell[ds];
+    //delete ell_plus[ds];
   }
-  delete sigs;
+  //delete sigs;
 }
 
 /**
@@ -223,21 +223,21 @@ void Grid_Data::randomizeData(void){
   }
 
 
-  for(int s = 0;s < subdomains.size();++ s){
-    subdomains[s].randomizeData();
-  }
+  //for(int s = 0;s < subdomains.size();++ s){
+  //  subdomains[s].randomizeData();
+  //}
 
-  for(int zs = 0;zs < num_zone_sets;++ zs){
-    phi[zs]->randomizeData();
-    phi_out[zs]->randomizeData();
-  }
+  //for(int zs = 0;zs < num_zone_sets;++ zs){
+  //  phi[zs]->randomizeData();
+  //  phi_out[zs]->randomizeData();
+  //}
 
-  for(int ds = 0;ds < num_direction_sets;++ ds){
-    ell[ds]->randomizeData();
-    ell_plus[ds]->randomizeData();
-  }
+  //for(int ds = 0;ds < num_direction_sets;++ ds){
+  //  ell[ds]->randomizeData();
+  //  ell_plus[ds]->randomizeData();
+  //}
 
-  sigs->randomizeData();
+  //sigs->randomizeData();
 }
 
 
