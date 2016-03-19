@@ -1,5 +1,0 @@
-global.bin.1024
-1
-traceJ-test job.1024 1024
-M 100000 5120
-T 10 0
