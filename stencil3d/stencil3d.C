@@ -114,7 +114,6 @@ int main(int argc, char **argv) {
   AMPI_Set_startevent(MPI_COMM_WORLD);
 #endif
 
-  startTime = MPI_Wtime();
 #if CMK_BIGSIM_CHARM
   BgTimeLine &timeLine = tTIMELINEREC.timeline;  
   if(!myRank)
@@ -152,6 +151,7 @@ int main(int argc, char **argv) {
 #if CMK_BIGSIM_CHARM
     BgMark("Stencil3D");
 #endif
+    MPI_Loop_to_start();
   }
 #if CMK_BIGSIM_CHARM
   AMPI_Set_endevent();
