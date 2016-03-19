@@ -1,3 +1,0 @@
-#!/bin/bash
-
-runjob -p 4 -n 2048 --block $COBALT_PARTNAME : ./a2a 128 144 160 5 2 +bglog +x240 +y192 +z64 +tcharm_stacksize 128K
