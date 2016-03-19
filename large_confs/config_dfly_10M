@@ -1,0 +1,5 @@
+dfly.def
+1
+traces job.dfly.def 737280 1
+M 100000 10368000
+E Stencil3D 0.036
