@@ -92,7 +92,7 @@ int SweepSolver (Grid_Data *grid_data, bool block_jacobi)
     /*
      * Sweep (psi = Hinv*rhs)
      */
-    BgMark("SolveCompute");
+    BgMark("Kripke_SolveCompute");
     {
       BLOCK_TIMER(grid_data->timing, Sweep);
 
@@ -129,6 +129,7 @@ int SweepSolver (Grid_Data *grid_data, bool block_jacobi)
       printf("iter %d: particle count=%e, change=%e\n", iter, part, (part-part_last)/part);
     }
     part_last = part;
+    MPI_Loop_to_start();
   }
   AMPI_Set_endevent();
   MPI_Barrier(MPI_COMM_WORLD);
@@ -182,7 +183,7 @@ void SweepSubdomains (std::vector<int> subdomain_list, Grid_Data *grid_data, boo
         BLOCK_TIMER(grid_data->timing, Sweep_Kernel);
         // Perform subdomain sweep
         //grid_data->kernel->sweep(&sdom);
-        BgMark("SweepCompute");
+        BgMark("Kripke_SweepCompute");
       }
 
       // Mark as complete (and do any communication)

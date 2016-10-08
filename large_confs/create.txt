@@ -1,5 +1,0 @@
-For dfly mapping: ./dfly_map global.bin 4423680 512 256 
-Regular mapping ./genMapping global.bin.full 2949120 
-
-Perm logs: ./permutation-ampi 5120 3 +bglog +x240 +y192 +z64 +tcharm_stacksize 128K
-Run job: runjob -p 8 -n 5760 --block $COBALT_PARTNAME : ./traceR --sync=3  --extramem=1000000 --nkp=781 --end=600000000 -- tracer-dragonfly.conf tracer_config

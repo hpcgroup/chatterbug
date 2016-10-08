@@ -7,9 +7,11 @@ int main(int argc, char** argv) {
   fftw_plan my_plan;
 
   int N = atoi(argv[1]);
-  in = (fftw_complex*) fftw_malloc(sizeof(fftw_complex)*N);
-  out = (fftw_complex*) fftw_malloc(sizeof(fftw_complex)*N);
-  my_plan = fftw_plan_dft_1d(N, in, out, FFTW_FORWARD, FFTW_MEASURE);
+  int L = atoi(argv[2]);
+  int dims[] = {N};
+  in = (fftw_complex*) fftw_malloc(L*sizeof(fftw_complex)*N);
+  out = (fftw_complex*) fftw_malloc(L*sizeof(fftw_complex)*N);
+  my_plan = fftw_plan_many_dft(1, dims, L, in, NULL, 1, N, out, NULL, 1, N, FFTW_FORWARD, FFTW_MEASURE);
 
   double testTime = MPI_Wtime();
   fftw_execute(my_plan);

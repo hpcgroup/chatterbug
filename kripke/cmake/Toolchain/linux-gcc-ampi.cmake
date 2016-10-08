@@ -1,5 +1,5 @@
 # NOTE: update AMPI_DIR to point to AMPI compilers
-set(AMPI_DIR "/scratch/nikhil/charm-master/netlrts-linux-x86_64-bigemulator")
+set(AMPI_DIR "/p/lscratchf/jain6/network-sim/charm/mpi-linux-x86_64-bigemulator-mpicxx")
 
 set(CMAKE_C_COMPILER "${AMPI_DIR}/bin/ampicc")
 set(CMAKE_CXX_COMPILER "${AMPI_DIR}/bin/ampicxx")

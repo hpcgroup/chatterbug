@@ -151,6 +151,7 @@ int main(int argc, char **argv)
     BgPrintf("Current time is %f\n");
 
   for (i = 0; i < MAX_ITER; i++) {
+    BgMark("QBOX_Setup");    
     All2All(sendbuf, recvbuf, fft_size, myrank, dims, 0);
     Reduce(sendbuf, recvbuf, allreduce_size, myrank, dims, MP_X);
     Bcast(sendbuf, allreduce_size, myrank, dims, MP_X);
