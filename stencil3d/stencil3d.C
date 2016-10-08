@@ -3,14 +3,16 @@
 #include <stdlib.h>
 #include <strings.h>
 #include <math.h>
+#if CMK_BIGSIM_CHARM
 #include "shared-alloc.h"
 #include "cktiming.h"
-void changeMessage(BgTimeLog *log);
-
-#define EFFICIENT_TRACE 1
-
-#if CMK_BIGSIM_CHARM
 extern "C" void BgMark(const char *str);
+void changeMessage(BgTimeLog *log)
+{
+  log->msgs[0]->msgsize = 5242880;
+}
+#else
+#define shalloc(a,b) malloc(a)
 #endif
 
 #define wrap_x(a)	(((a)+num_blocks_x)%num_blocks_x)
@@ -37,7 +39,7 @@ int main(int argc, char **argv) {
   int MAX_ITER = MAX;
 
   MPI_Init(&argc, &argv);
-#if EFFICIENT_TRACE
+#if CMK_BIGSIM_CHARM
   MPI_Barrier(MPI_COMM_WORLD);
   MPI_Set_trace_status(0);
   MPI_Barrier(MPI_COMM_WORLD);
@@ -108,9 +110,7 @@ int main(int argc, char **argv) {
   
   MPI_Barrier(MPI_COMM_WORLD);
 #if CMK_BIGSIM_CHARM
-#if EFFICIENT_TRACE
   MPI_Set_trace_status(1);
-#endif
   AMPI_Set_startevent(MPI_COMM_WORLD);
 #endif
 
@@ -121,6 +121,9 @@ int main(int argc, char **argv) {
 #endif
   while(/*error > 0.001 &&*/ iterations < MAX_ITER) {
     iterations++;
+#if CMK_BIGSIM_CHARM
+    BgMark("Stencil3D_Setup");
+#endif
     MPI_Irecv(right_block_in, msg_size, MPI_DOUBLE, calc_pe(wrap_x(myXcoord+1), myYcoord, myZcoord), RIGHT, MPI_COMM_WORLD, &req[RIGHT-1]);
     MPI_Irecv(left_block_in, msg_size, MPI_DOUBLE, calc_pe(wrap_x(myXcoord-1), myYcoord, myZcoord), LEFT, MPI_COMM_WORLD, &req[LEFT-1]);
     MPI_Irecv(top_block_in, msg_size, MPI_DOUBLE, calc_pe(myXcoord,wrap_y(myYcoord+1), myZcoord), TOP, MPI_COMM_WORLD, &req[TOP-1]);
@@ -129,29 +132,41 @@ int main(int argc, char **argv) {
     MPI_Irecv(back_block_in, msg_size, MPI_DOUBLE, calc_pe(myXcoord, myYcoord, wrap_z(myZcoord-1)),BACK, MPI_COMM_WORLD, &req[BACK-1]);
 
     MPI_Send(left_block_out, msg_size, MPI_DOUBLE, calc_pe(wrap_x(myXcoord-1), myYcoord, myZcoord), RIGHT, MPI_COMM_WORLD);
+#if CMK_BIGSIM_CHARM
     changeMessage(timeLine[timeLine.length() - 3]);
+#endif
 
     MPI_Send(right_block_out, msg_size, MPI_DOUBLE, calc_pe(wrap_x(myXcoord+1), myYcoord, myZcoord), LEFT, MPI_COMM_WORLD);
+#if CMK_BIGSIM_CHARM
     changeMessage(timeLine[timeLine.length() - 3]);
+#endif
 
     MPI_Send(bottom_block_out, msg_size, MPI_DOUBLE, calc_pe(myXcoord, wrap_y(myYcoord-1), myZcoord), TOP, MPI_COMM_WORLD);
+#if CMK_BIGSIM_CHARM
     changeMessage(timeLine[timeLine.length() - 3]);
+#endif
 
     MPI_Send(top_block_out, msg_size, MPI_DOUBLE, calc_pe(myXcoord, wrap_y(myYcoord+1), myZcoord), BOTTOM, MPI_COMM_WORLD);
+#if CMK_BIGSIM_CHARM
     changeMessage(timeLine[timeLine.length() - 3]);
+#endif
 
     MPI_Send(back_block_out, msg_size, MPI_DOUBLE, calc_pe(myXcoord, myYcoord, wrap_z(myZcoord-1)), FRONT, MPI_COMM_WORLD);
+#if CMK_BIGSIM_CHARM
     changeMessage(timeLine[timeLine.length() - 3]);
+#endif
 
     MPI_Send(front_block_out, msg_size, MPI_DOUBLE, calc_pe(myXcoord, myYcoord, wrap_z(myZcoord+1)), BACK, MPI_COMM_WORLD);
+#if CMK_BIGSIM_CHARM
     changeMessage(timeLine[timeLine.length() - 3]);
+#endif
 
     MPI_Waitall(6, req, status);
 
 #if CMK_BIGSIM_CHARM
-    BgMark("Stencil3D");
-#endif
+    BgMark("Stencil3D_Work");
     MPI_Loop_to_start();
+#endif
   }
 #if CMK_BIGSIM_CHARM
   AMPI_Set_endevent();
@@ -167,7 +182,7 @@ int main(int argc, char **argv) {
     printf("Completed %d iterations\n", iterations);
     printf("Time elapsed per iteration: %f\n", (endTime - startTime)/(MAX_ITER));
   }
-#if EFFICIENT_TRACE
+#if CMK_BIGSIM_CHARM
   MPI_Set_trace_status(0);
   MPI_Barrier(MPI_COMM_WORLD);
 #endif
@@ -175,9 +190,4 @@ int main(int argc, char **argv) {
   MPI_Finalize();
   return 0;
 } /* end function main */
-
-void changeMessage(BgTimeLog *log)
-{
-  log->msgs[0]->msgsize = 5242880;
-}
 

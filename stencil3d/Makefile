@@ -1,5 +1,5 @@
 CC ?= mpixlcxx
-OPTS = -O3 -verbose
+OPTS = -O3
 
 all:stencil3d
 
