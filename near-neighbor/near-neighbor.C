@@ -28,16 +28,18 @@ int main(int argc, char **argv)
 {
   int i, myrank, numranks, off;
   MPI_Init(&argc,&argv);
+#if CMK_BIGSIM_CHARM
   MPI_Barrier(MPI_COMM_WORLD);
   MPI_Set_trace_status(0);
   MPI_Barrier(MPI_COMM_WORLD);
+#endif
   MPI_Comm_rank(MPI_COMM_WORLD,&myrank);
   MPI_Comm_size(MPI_COMM_WORLD,&numranks);
 
-  if(!myrank && argc != 6) {
-    printf("Correct usage: %s minD maxD neighborhood msg_size_bytes num_iters\n",
+  if(!myrank && argc < 6) {
+    printf("Correct usage: %s minD maxD neighborhood msg_size_bytes num_iters <count_size>\n",
       argv[0]);
-    return 1;
+    MPI_Abort(MPI_COMM_WORLD, 1);
   }
 
   int minD = atoi(argv[1]);
@@ -45,86 +47,60 @@ int main(int argc, char **argv)
   int neighborhood = atoi(argv[3]);
   int msg_size = atoi(argv[4]);
   int MAX_ITER = atoi(argv[5]);
+  int count_size = 100;
+  if(argc > 6) {
+    count_size = atoi(argv[6]);
+  }
   
   if(!myrank)
     printf("Create neighbors\n");
 
-  vector<int> neighbors;
-#if CMK_BIGSIM_CHARM
-  if(degree == NULL) {
-#endif
-    degree = (int*)malloc(numranks*sizeof(int));
-    srand(1337);
-    int range = maxD - minD;
-    if(range == 0) range = 1;
-    long long sum = 0;
-    for(int i = 0; i < numranks; i++) {
-      degree[i] = minD + (rand() % range);
-      sum += degree[i];
-    }
+  srand(myrank);
+  int range = maxD - minD;
+  if(range == 0) range = 1;
+  int my_degree = (minD + (rand() % range))/1;
 
-    srcP = (int*)malloc(sum*sizeof(int));
-    destP = (int*)malloc(sum*sizeof(int));
-
-    long long count = 2*sum;
-    sum_g = 0;
-    sum /= 2;
-    while(sum > 0 && count > 0) {
-      count--;
-#if SPREAD
-      int src = rand() % (numranks/2);
-#else
-      int src = my_rand() % numranks;
-#endif
-      if(degree[src] == 0) continue;
-      int multby = 1;
-#if SPREAD
-      int dst = (numranks/2 + (rand() % (numranks/2))) % numranks;
-#else
-      //if(my_rand() % 2) multby = -1;
-      int dst = ((src + multby * (my_rand() % neighborhood)) + numranks) % numranks;
-#endif
-      if(degree[dst] == 0) continue;
-      if(src == dst) continue;
-      degree[src]--;
-      degree[dst]--;
-      sum--;
-      srcP[sum_g] = src;
-      destP[sum_g++] = dst;
-    }
-    printf("Created: %lld, Left %lld\n", sum_g, sum);
-#if CMK_BIGSIM_CHARM
+  int *neighbors = new int[my_degree];
+  for(int i = 0; i < my_degree; i++) {
+    neighbors[i] = (myrank + (rand() % neighborhood)) % numranks;
   }
-#endif
 
-  for(int i = 0; i < sum_g; i++) {
-    if(srcP[i] == myrank) {
-      neighbors.push_back(destP[i]);
+  int numNeighbors;
+  int *counts = new int[count_size];
+  int *new_counts = new int[count_size];
+  for(int i = 0; i < numranks; i += count_size) {
+    if(!myrank) {
+      printf("Reducing %d - %d\n", i, i + count_size);
     }
-    if(destP[i] == myrank) {
-      neighbors.push_back(srcP[i]);
+    for(int j = 0; j < count_size; j++) counts[j] = 0;
+    for(int j = 0; j < my_degree; j++) {
+      int abs_rank = neighbors[j] - i;
+      if((abs_rank >= 0) && (abs_rank < count_size)) {
+        counts[abs_rank]++;
+      }
+    }
+    MPI_Allreduce(counts, new_counts, count_size, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD);
+    if(myrank >= i && (myrank < (i + count_size))) {
+      numNeighbors = new_counts[myrank - i];
     }
   }
 
-#if !CMK_BIGSIM_CHARM
-  free(srcP);
-  free(destP);
-#endif
+  free(counts);
+  free(new_counts);
 
-  int numNeighbors = neighbors.size();
   double startTime, stopTime;
   char *sendbuf, *recvbuf;
 
 #if CMK_BIGSIM_CHARM
-  sendbuf = (char*) shalloc (maxD * msg_size * sizeof(char), 1);
-  recvbuf = (char*) shalloc (maxD * msg_size * sizeof(char), 1);
+  sendbuf = (char*) shalloc (1 * msg_size * sizeof(char), 1);
+  recvbuf = (char*) shalloc (1 * msg_size * sizeof(char), 1);
 #else
-  sendbuf = (char*) malloc (numNeighbors * msg_size * sizeof(char));
+  sendbuf = (char*) malloc (my_degree * msg_size * sizeof(char));
   recvbuf = (char*) malloc (numNeighbors * msg_size * sizeof(char));
 #endif
 
   MPI_Request *sreq, *rreq;
-  sreq = new MPI_Request[numNeighbors];
+  sreq = new MPI_Request[my_degree];
   rreq = new MPI_Request[numNeighbors];
 
   MPI_Barrier(MPI_COMM_WORLD);
@@ -139,26 +115,32 @@ int main(int argc, char **argv)
     BgPrintf("Current time is %f\n");
 #endif
   for (i = 0; i < MAX_ITER; i++) {
-    off = 0;
+#if CMK_BIGSIM_CHARM
+    BgMark("SmallMsgs_Setup");
+#endif
     for(int i = 0; i < numNeighbors; i++) {
-      BgMark("SendTime");
-      MPI_Isend(&sendbuf[off], msg_size, MPI_CHAR, neighbors[i], 0,
+      MPI_Irecv(&recvbuf[0], msg_size, MPI_CHAR, MPI_ANY_SOURCE, 0,
+        MPI_COMM_WORLD, &rreq[i]);
+    }
+    for(int i = 0; i < my_degree; i++) {
+#if CMK_BIGSIM_CHARM
+      BgMark("SmallMsgs_SendTime");
+#endif
+      MPI_Isend(&sendbuf[0], msg_size, MPI_CHAR, neighbors[i], 0,
         MPI_COMM_WORLD, &sreq[i]);
 #if CMK_BIGSIM_CHARM
       changeMessage(timeLine[timeLine.length() - 3]);
 #endif
-      MPI_Irecv(&recvbuf[off], msg_size, MPI_CHAR, neighbors[i], 0,
-        MPI_COMM_WORLD, &rreq[i]);
-      off += msg_size;
     }
-#if CMK_BIGSIM_CHARM
-    BgAdvance(100);    
-#endif
-    MPI_Waitall(numNeighbors, &sreq[0], MPI_STATUSES_IGNORE);
+    MPI_Waitall(my_degree, &sreq[0], MPI_STATUSES_IGNORE);
     MPI_Waitall(numNeighbors, &rreq[0], MPI_STATUSES_IGNORE);
-  }
-  AMPI_Set_endevent();
 #if CMK_BIGSIM_CHARM
+    BgMark("SmallMsgs_Work");
+    MPI_Loop_to_start();
+#endif
+  }
+#if CMK_BIGSIM_CHARM
+  AMPI_Set_endevent();
   if(!myrank)
     BgPrintf("Before barrier Current time is %f\n");
 #endif

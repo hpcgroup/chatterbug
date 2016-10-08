@@ -29,7 +29,7 @@ int main(int argc, char **argv)
 
   if(!myrank && argc != 3) {
     printf("Correct usage: ./%s bytes_per_pair num_iter\n", argv[0]);
-    MPI_Abort(MPI_COMM_WORLD, 0);
+    MPI_Abort(MPI_COMM_WORLD, 1);
   }
 
   double startTime, stopTime;
