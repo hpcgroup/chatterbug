@@ -2,10 +2,6 @@
 #include <stdlib.h>
 #include "mpi.h"
 
-#define MP_X 0
-#define MP_Y 1
-#define MP_Z 2
-
 #if CMK_BIGSIM_CHARM
 #include "shared-alloc.h"
 #include "blue.h"
@@ -16,34 +12,34 @@ void changeMessage(BgTimeLog *log)
   log->msgs[0]->msgsize = 5242880;            
 }
 
+extern "C" void BgMark(const char *str);
 #endif
-
-#define calc_pe(a,b,c)  ((a)+(b)*dims[MP_X]+(c)*dims[MP_X]*dims[MP_Y])
 
 int main(int argc, char **argv)
 {
   int i, myrank, numranks, off;
   MPI_Init(&argc,&argv);
+#if CMK_BIGSIM_CHARM
+  MPI_Barrier(MPI_COMM_WORLD);
+  MPI_Set_trace_status(0);
+  MPI_Barrier(MPI_COMM_WORLD);
+#endif
   MPI_Comm_rank(MPI_COMM_WORLD,&myrank);
   MPI_Comm_size(MPI_COMM_WORLD,&numranks);
 
-  if(!myrank && argc != 6) {
-    printf("Correct usage: ./%s dimX dimY dimZ bytes_per_pair num_iter\n", argv[0]);
+  if(!myrank && argc != 3) {
+    printf("Correct usage: ./%s bytes_per_pair num_iter\n", argv[0]);
     MPI_Abort(MPI_COMM_WORLD, 0);
   }
 
-  int dims[3] = {0, 0, 0};
   double startTime, stopTime;
 
-  MPI_Request *sreq, *rreq;
+  MPI_Request sreq, rreq;
 
-  dims[MP_X] = atoi(argv[1]);
-  dims[MP_Y] = atoi(argv[2]);
-  dims[MP_Z] = atoi(argv[3]);
-  int perrank = atoi(argv[4]);
-  int MAX_ITER = atoi(argv[5]);
+  int perrank = atoi(argv[1]);
+  int MAX_ITER = atoi(argv[2]);
 
-  int largerGroup = (dims[MP_X] > dims[MP_Y]) ? dims[MP_X] : dims[MP_Y];
+  int largerGroup = numranks;
 
 #if CMK_BIGSIM_CHARM
   char *sendbuf = (char*)shalloc(perrank * largerGroup, 1);
@@ -53,14 +49,9 @@ int main(int argc, char **argv)
   char *recvbuf = (char*)malloc(perrank * largerGroup);
 #endif
 
-  sreq = new MPI_Request[largerGroup];
-  rreq = new MPI_Request[largerGroup];
-
-  int myXcoord = myrank % dims[MP_X];
-  int myYcoord = (myrank % (dims[MP_X] * dims[MP_Y])) / dims[MP_X];
-  int myZcoord = (myrank % (dims[MP_X] * dims[MP_Y] * dims[MP_Z])) / (dims[MP_X] * dims[MP_Y]);
-
+  MPI_Barrier(MPI_COMM_WORLD);
 #if CMK_BIGSIM_CHARM
+  MPI_Set_trace_status(1);
   AMPI_Set_startevent(MPI_COMM_WORLD);
 #endif
   startTime = MPI_Wtime();
@@ -70,50 +61,39 @@ int main(int argc, char **argv)
     BgPrintf("Current time is %f\n");
 #endif
   for (i = 0; i < MAX_ITER; i++) {
+#if CMK_BIGSIM_CHARM
+    BgMark("FFT_Setup");
+#endif
     off = 0;
-    for(int ycoord = 1; ycoord < dims[MP_Y]; ycoord++) {
+    for(int target = myrank + 1; target < numranks + myrank; target++) {
       MPI_Isend(&sendbuf[off], perrank, MPI_CHAR,
-        calc_pe(myXcoord, (ycoord + myYcoord) % dims[MP_Y], myZcoord), 0,
-        MPI_COMM_WORLD, &sreq[ycoord]);
+        target % numranks, 0, MPI_COMM_WORLD, &sreq);
 #if CMK_BIGSIM_CHARM
       changeMessage(timeLine[timeLine.length() - 3]);
 #endif
       MPI_Irecv(&recvbuf[off], perrank, MPI_CHAR,
-        calc_pe(myXcoord, (ycoord + myYcoord) % dims[MP_Y], myZcoord), 0,
-        MPI_COMM_WORLD, &rreq[ycoord]);
+        (myrank - (target - myrank) + numranks) % numranks, 0, MPI_COMM_WORLD, &rreq);
       off += perrank;
+      MPI_Waitall(1, &sreq, MPI_STATUSES_IGNORE);
+      MPI_Waitall(1, &rreq, MPI_STATUSES_IGNORE);
     }
 #if CMK_BIGSIM_CHARM
-    BgAdvance(100);    
+    BgMark("FFT_WORK");    
+    MPI_Loop_to_start();
 #endif
-    MPI_Waitall(dims[MP_Y] - 1, &sreq[1], MPI_STATUSES_IGNORE);
-    MPI_Waitall(dims[MP_Y] - 1, &rreq[1], MPI_STATUSES_IGNORE);
-    off = 0;
-    for(int xcoord = 1; xcoord < dims[MP_X]; xcoord++) {
-      MPI_Isend(&sendbuf[off], perrank, MPI_CHAR,
-        calc_pe((xcoord + myXcoord) % dims[MP_X], myYcoord, myZcoord), 0,
-        MPI_COMM_WORLD, &sreq[xcoord]);
-#if CMK_BIGSIM_CHARM
-      changeMessage(timeLine[timeLine.length() - 3]);
-#endif
-      MPI_Irecv(&recvbuf[off], perrank, MPI_CHAR,
-        calc_pe((xcoord + myXcoord) % dims[MP_X], myYcoord, myZcoord), 0,
-        MPI_COMM_WORLD, &rreq[xcoord]);
-      off += perrank;
-    }
-#if CMK_BIGSIM_CHARM
-    BgAdvance(100);    
-#endif
-    MPI_Waitall(dims[MP_X] - 1, &sreq[1], MPI_STATUSES_IGNORE);
-    MPI_Waitall(dims[MP_X] - 1, &rreq[1], MPI_STATUSES_IGNORE);
   }
+#if CMK_BIGSIM_CHARM
   AMPI_Set_endevent();
+#endif
   MPI_Barrier(MPI_COMM_WORLD);
   stopTime = MPI_Wtime();
 #if CMK_BIGSIM_CHARM
   if(!myrank)
     BgPrintf("After loop Current time is %f\n");
+  
+  MPI_Set_trace_status(0);
 #endif
+  MPI_Barrier(MPI_COMM_WORLD);
 
   if(myrank == 0 && MAX_ITER != 0) {
     printf("Finished %d iterations\n",MAX_ITER);
@@ -122,11 +102,3 @@ int main(int argc, char **argv)
   }
   MPI_Finalize();
 }
-
-
-
-
-
-
-
-
