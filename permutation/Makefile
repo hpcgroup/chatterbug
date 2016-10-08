@@ -4,7 +4,7 @@ OPTS = -O3 -g
 all:permutation
 
 permutation: permutation.C
-	$(CC) $(OPTS) $(INCS) -o $@ $< # -L/soft/perftools/HPM  -lmpitrace
+	$(CC) $(OPTS) $(INCS) -o $@ $< 
 
 clean:
 	rm -f permutation

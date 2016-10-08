@@ -19,11 +19,13 @@ extern "C" void BgMark(const char *str);
 int main(int argc, char **argv)
 {
   MPI_Init(&argc,&argv);
+#if CMK_BIGSIM_CHARM
   MPI_Barrier(MPI_COMM_WORLD);
   MPI_Set_trace_status(0);
   MPI_Barrier(MPI_COMM_WORLD);
+#endif
   int rank, numranks;
-  int numIter = 50;
+  int numIter = 2;
 
   double starttime, endtime;
   MPI_Status status;
@@ -110,15 +112,19 @@ int main(int argc, char **argv)
     BgPrintf("Current time is %f\n");
 #endif
   for(int i = 0; i < numIter; i++) {
+#if CMK_BIGSIM_CHARM
+    BgMark("Permuation_Setup");    
+#endif
     MPI_Irecv(answer,size,MPI_CHAR,partner,0,MPI_COMM_WORLD,&requests[0]);
     MPI_Isend(question,size,MPI_CHAR,partner,0,MPI_COMM_WORLD,&requests[1]);
 #if CMK_BIGSIM_CHARM
     changeMessage(timeLine[timeLine.length() - 3]);
 #endif
-#if CMK_BIGSIM_CHARM
-    BgMark("Permuation");    
-#endif
     MPI_Waitall(2, requests, MPI_STATUSES_IGNORE);
+#if CMK_BIGSIM_CHARM
+    BgMark("Permuation_Work");    
+    MPI_Loop_to_start();
+#endif
   }
 #if CMK_BIGSIM_CHARM
   AMPI_Set_endevent();
@@ -133,15 +139,15 @@ int main(int argc, char **argv)
 #if CMK_BIGSIM_CHARM
   if(!rank)
     BgPrintf("After loop Current time is %f\n");
+  MPI_Set_trace_status(0);
+  MPI_Barrier(MPI_COMM_WORLD);
 #else
   if(!rank)
     printf("After loop Current time is %f\n", MPI_Wtime() - starttime);
 #endif
   
-  MPI_Set_trace_status(0);
-  MPI_Barrier(MPI_COMM_WORLD);
   if(rank == 0 && numIter != 0)
-    printf("[%d] Time for size %d is %lf : (%lf %lf)\n",rank,size,(endtime-starttime)/(numIter),endtime,starttime);
+    printf("[%d] Iters %d Time for size %d is %lf : (%lf %lf)\n",rank, numIter, size,(endtime-starttime)/(numIter),endtime,starttime);
 
   MPI_Finalize();
 } 
