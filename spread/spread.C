@@ -82,8 +82,8 @@ int main(int argc, char **argv)
     }
   }
 
-  free(counts);
-  free(new_counts);
+  delete [] counts;
+  delete [] new_counts;
 
   double startTime, stopTime;
   char *sendbuf, *recvbuf;
