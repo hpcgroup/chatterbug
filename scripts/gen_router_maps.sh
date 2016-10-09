@@ -17,65 +17,82 @@ slim="15 4 15 722 1"
                                                                                  
 filename="out.multijob.${max_size}"                                              
 echo "python ./map_gen.py $max_size $numSample 0 multijob.inp.${max_size} >$filename"
-python ./map_gen.py $max_size $numSample 0 multijob.inp.${max_size} >$filename
+python ./map_gen.py $max_size $numSample 1 multijob.inp.${max_size} >$filename
                                                                                  
-cur_count=0                                                                      
+cur_count=0         
+line_count=0
 cat $filename | while read -r line
 do 
   numjobs=`wc -l multijob.inp.${max_size}.${cur_count} | awk '{print $1}'`
 
-  echo "./many_job global.bin 1 $numjobs $line $dfly multijob.inp.${max_size}.${cur_count}"
-  ./many_job global.bin 1 $numjobs $line $dfly multijob.inp.${max_size}.${cur_count}
-  mkdir -p $dest_folder/node/linear/set_${cur_count}/dfly
-  mv global* $dest_folder/node/linear/set_${cur_count}/dfly
-  mv job* $dest_folder/node/linear/set_${cur_count}/dfly
-
-  echo "./many_job global.bin 1 $numjobs $line $ftree multijob.inp.${max_size}.${cur_count}"
-  ./many_job global.bin 1 $numjobs $line $ftree multijob.inp.${max_size}.${cur_count}
-  mkdir -p $dest_folder/node/linear/set_${cur_count}/ftree
-  mv global* $dest_folder/node/linear/set_${cur_count}/ftree
-  mv job* $dest_folder/node/linear/set_${cur_count}/ftree
-
-  echo "./many_job global.bin 1 $numjobs $line $ht multijob.inp.${max_size}.${cur_count}"
-  ./many_job global.bin 1 $numjobs $line $ht multijob.inp.${max_size}.${cur_count}
-  mkdir -p $dest_folder/node/linear/set_${cur_count}/ht
-  mv global* $dest_folder/node/linear/set_${cur_count}/ht
-  mv job* $dest_folder/node/linear/set_${cur_count}/ht
-
-  echo "./many_job global.bin 1 $numjobs $line $slim multijob.inp.${max_size}.${cur_count}"
-  ./many_job global.bin 1 $numjobs $line $slim multijob.inp.${max_size}.${cur_count}
-  mkdir -p $dest_folder/node/linear/set_${cur_count}/slim
-  mv global* $dest_folder/node/linear/set_${cur_count}/slim
-  mv job* $dest_folder/node/linear/set_${cur_count}/slim
+  if [[ "$((line_count%4))" == "0" ]];
+  then 
+  echo "./multi_job global.bin 2 $numjobs $line $dfly multijob.inp.${max_size}.${cur_count}"
+  ./multi_job global.bin 2 $numjobs $line $dfly multijob.inp.${max_size}.${cur_count}
+  mkdir -p $dest_folder/router/linear/set_${cur_count}/dfly
+  mv global* $dest_folder/router/linear/set_${cur_count}/dfly
+  mv job* $dest_folder/router/linear/set_${cur_count}/dfly
 
   #rand placement
-  echo "./many_job global.bin 2 $numjobs $line $dfly multijob.inp.${max_size}.${cur_count}"
-  ./many_job global.bin 2 $numjobs $line $dfly multijob.inp.${max_size}.${cur_count}
-  mkdir -p $dest_folder/node/rand/set_${cur_count}/dfly
-  mv global* $dest_folder/node/rand/set_${cur_count}/dfly
-  mv job* $dest_folder/node/rand/set_${cur_count}/dfly
+  echo "./multi_job global.bin 2 $numjobs $line $dfly multijob.inp.${max_size}.${cur_count}"
+  ./multi_job global.bin 2 $numjobs $line $dfly multijob.inp.${max_size}.${cur_count}
+  mkdir -p $dest_folder/router/rand/set_${cur_count}/dfly
+  mv global* $dest_folder/router/rand/set_${cur_count}/dfly
+  mv job* $dest_folder/router/rand/set_${cur_count}/dfly
+  fi
 
-  echo "./many_job global.bin 2 $numjobs $line $ftree multijob.inp.${max_size}.${cur_count}"
-  ./many_job global.bin 2 $numjobs $line $ftree multijob.inp.${max_size}.${cur_count}
-  mkdir -p $dest_folder/node/rand/set_${cur_count}/ftree
-  mv global* $dest_folder/node/rand/set_${cur_count}/ftree
-  mv job* $dest_folder/node/rand/set_${cur_count}/ftree
+  if [[ "$((line_count%4))" == "1" ]];
+  then 
+  echo "./multi_job global.bin 2 $numjobs $line $ftree multijob.inp.${max_size}.${cur_count}"
+  ./multi_job global.bin 2 $numjobs $line $ftree multijob.inp.${max_size}.${cur_count}
+  mkdir -p $dest_folder/router/linear/set_${cur_count}/ftree
+  mv global* $dest_folder/router/linear/set_${cur_count}/ftree
+  mv job* $dest_folder/router/linear/set_${cur_count}/ftree
 
-  echo "./many_job global.bin 2 $numjobs $line $ht multijob.inp.${max_size}.${cur_count}"
-  ./many_job global.bin 2 $numjobs $line $ht multijob.inp.${max_size}.${cur_count}
-  mkdir -p $dest_folder/node/rand/set_${cur_count}/ht
-  mv global* $dest_folder/node/rand/set_${cur_count}/ht
-  mv job* $dest_folder/node/rand/set_${cur_count}/ht
+  echo "./multi_job global.bin 2 $numjobs $line $ftree multijob.inp.${max_size}.${cur_count}"
+  ./multi_job global.bin 2 $numjobs $line $ftree multijob.inp.${max_size}.${cur_count}
+  mkdir -p $dest_folder/router/rand/set_${cur_count}/ftree
+  mv global* $dest_folder/router/rand/set_${cur_count}/ftree
+  mv job* $dest_folder/router/rand/set_${cur_count}/ftree
+  fi
 
-  echo "./many_job global.bin 2 $numjobs $line $slim multijob.inp.${max_size}.${cur_count}"
-  ./many_job global.bin 2 $numjobs $line $slim multijob.inp.${max_size}.${cur_count}
-  mkdir -p $dest_folder/node/rand/set_${cur_count}/slim
-  mv global* $dest_folder/node/rand/set_${cur_count}/slim
-  mv job* $dest_folder/node/rand/set_${cur_count}/slim
+  if [[ "$((line_count%4))" == "2" ]];
+  then 
+  echo "./multi_job global.bin 2 $numjobs $line $ht multijob.inp.${max_size}.${cur_count}"
+  ./multi_job global.bin 2 $numjobs $line $ht multijob.inp.${max_size}.${cur_count}
+  mkdir -p $dest_folder/router/linear/set_${cur_count}/ht
+  mv global* $dest_folder/router/linear/set_${cur_count}/ht
+  mv job* $dest_folder/router/linear/set_${cur_count}/ht
 
-  (( cur_count++ ))
+  echo "./multi_job global.bin 2 $numjobs $line $ht multijob.inp.${max_size}.${cur_count}"
+  ./multi_job global.bin 2 $numjobs $line $ht multijob.inp.${max_size}.${cur_count}
+  mkdir -p $dest_folder/router/rand/set_${cur_count}/ht
+  mv global* $dest_folder/router/rand/set_${cur_count}/ht
+  mv job* $dest_folder/router/rand/set_${cur_count}/ht
+  fi
+
+  if [[ "$((line_count%4))" == "3" ]];
+  then 
+  echo "./multi_job global.bin 2 $numjobs $line $slim multijob.inp.${max_size}.${cur_count}"
+  ./multi_job global.bin 2 $numjobs $line $slim multijob.inp.${max_size}.${cur_count}
+  mkdir -p $dest_folder/router/linear/set_${cur_count}/slim
+  mv global* $dest_folder/router/linear/set_${cur_count}/slim
+  mv job* $dest_folder/router/linear/set_${cur_count}/slim
+  
+  echo "./multi_job global.bin 2 $numjobs $line $slim multijob.inp.${max_size}.${cur_count}"
+  ./multi_job global.bin 2 $numjobs $line $slim multijob.inp.${max_size}.${cur_count}
+  mkdir -p $dest_folder/router/rand/set_${cur_count}/slim
+  mv global* $dest_folder/router/rand/set_${cur_count}/slim
+  mv job* $dest_folder/router/rand/set_${cur_count}/slim
+  fi
+ 
+  (( line_count++ ))
+  if [[ "$((line_count%4))" == "0" ]] 
+  then
+    (( cur_count++ ))
+  fi
 done 
 
-mv $filename $dest_folder/node
-mv multijob.inp.${max_size}.* $dest_folder/node
+mv $filename $dest_folder/router
+mv multijob.inp.${max_size}.* $dest_folder/router
 
