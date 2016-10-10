@@ -27,8 +27,8 @@ do
 
   if [[ "$((line_count%4))" == "0" ]];
   then 
-  echo "./multi_job global.bin 2 $numjobs $line $dfly multijob.inp.${max_size}.${cur_count}"
-  ./multi_job global.bin 2 $numjobs $line $dfly multijob.inp.${max_size}.${cur_count}
+  echo "./multi_job global.bin 1 $numjobs $line $dfly multijob.inp.${max_size}.${cur_count}"
+  ./multi_job global.bin 1 $numjobs $line $dfly multijob.inp.${max_size}.${cur_count}
   mkdir -p $dest_folder/router/linear/set_${cur_count}/dfly
   mv global* $dest_folder/router/linear/set_${cur_count}/dfly
   mv job* $dest_folder/router/linear/set_${cur_count}/dfly
@@ -43,8 +43,8 @@ do
 
   if [[ "$((line_count%4))" == "1" ]];
   then 
-  echo "./multi_job global.bin 2 $numjobs $line $ftree multijob.inp.${max_size}.${cur_count}"
-  ./multi_job global.bin 2 $numjobs $line $ftree multijob.inp.${max_size}.${cur_count}
+  echo "./multi_job global.bin 1 $numjobs $line $ftree multijob.inp.${max_size}.${cur_count}"
+  ./multi_job global.bin 1 $numjobs $line $ftree multijob.inp.${max_size}.${cur_count}
   mkdir -p $dest_folder/router/linear/set_${cur_count}/ftree
   mv global* $dest_folder/router/linear/set_${cur_count}/ftree
   mv job* $dest_folder/router/linear/set_${cur_count}/ftree
@@ -58,8 +58,8 @@ do
 
   if [[ "$((line_count%4))" == "2" ]];
   then 
-  echo "./multi_job global.bin 2 $numjobs $line $ht multijob.inp.${max_size}.${cur_count}"
-  ./multi_job global.bin 2 $numjobs $line $ht multijob.inp.${max_size}.${cur_count}
+  echo "./multi_job global.bin 1 $numjobs $line $ht multijob.inp.${max_size}.${cur_count}"
+  ./multi_job global.bin 1 $numjobs $line $ht multijob.inp.${max_size}.${cur_count}
   mkdir -p $dest_folder/router/linear/set_${cur_count}/ht
   mv global* $dest_folder/router/linear/set_${cur_count}/ht
   mv job* $dest_folder/router/linear/set_${cur_count}/ht
@@ -73,8 +73,8 @@ do
 
   if [[ "$((line_count%4))" == "3" ]];
   then 
-  echo "./multi_job global.bin 2 $numjobs $line $slim multijob.inp.${max_size}.${cur_count}"
-  ./multi_job global.bin 2 $numjobs $line $slim multijob.inp.${max_size}.${cur_count}
+  echo "./multi_job global.bin 1 $numjobs $line $slim multijob.inp.${max_size}.${cur_count}"
+  ./multi_job global.bin 1 $numjobs $line $slim multijob.inp.${max_size}.${cur_count}
   mkdir -p $dest_folder/router/linear/set_${cur_count}/slim
   mv global* $dest_folder/router/linear/set_${cur_count}/slim
   mv job* $dest_folder/router/linear/set_${cur_count}/slim
