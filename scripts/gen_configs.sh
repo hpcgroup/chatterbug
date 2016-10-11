@@ -1,12 +1,13 @@
 if [[ $1 == "-h" ]];                                                             
 then                                                                             
-  echo "gen_configs.sh <numSample> <max_size 0 - 4><dst_folder>"
+  echo "gen_configs.sh <numSample> <min_size> <max_size 0 - 4> <dst_folder>"
   exit 0                            
 fi                                  
 
 numSample=$1
-max_size=$2
-dstFolder=$3
+min_size=$2
+max_size=$3
+dstFolder=$4
 
 ic=1
 
@@ -18,7 +19,7 @@ do
   do
     for count in `seq 0 $numSample`;
     do
-      config_file="${dstFolder}/${blocking}/multijob.inp.${max_size}.config.${count}"
+      config_file="${dstFolder}/${blocking}/multijob.inp.${min_size}.${max_size}.config.${count}"
       jobc=0
       declare -A job_traces
       declare -A job_sizes
@@ -42,13 +43,21 @@ do
           echo "${cur_folder}/global${job}" >${config_name}
           echo "1" >>${config_name} 
           echo "${job_traces[${job}]} $cur_folder/job${job} ${job_sizes[${job}]} $ic" >>${config_name} 
-          echo "M 0 0 8" >>${config_name} 
+          if [[ "${job_traces[${job}]}" == "a2a"* ]]; then
+            echo "M 0 0 5" >>${config_name} 
+          else
+            echo "M 0 0 1000" >>${config_name} 
+          fi
           echo "E 0 user_code 0.0" >>${config_name} 
           echo "${job_traces[$job]} $cur_folder/job${job} ${job_sizes[$job]} $ic" >>${config_all} 
         done
         for job in `seq 0 $job_count`;
         do
-          echo "M ${job} 0 8" >>${config_all} 
+          if [[ "${job_traces[${job}]}" == "a2a"* ]]; then
+            echo "M 0 0 5" >>${config_name} >>${config_all}
+          else
+            echo "M ${job} 0 1000" >>${config_all} 
+          fi
           echo "E ${job} user_code 0.0" >>${config_all} 
         done
       done

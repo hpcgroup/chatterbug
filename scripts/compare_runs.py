@@ -47,6 +47,6 @@ for job in range(len(allcounters)-1):
     intersect = np.intersect1d(nzs[job], nzs[p])
     merge = np.concatenate((merge, intersect))
   merge = np.unique(merge)
-  print "job " + str(job) + " " + str(100*len(merge)/len(nzs[job]))
+  print "job " + str(job) + " " + str(100*len(merge)/len(nzs[job])) + " " + str(len(merge))
 
 
