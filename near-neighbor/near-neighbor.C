@@ -24,6 +24,12 @@ void changeMessage(BgTimeLog *log)
 }
 #endif
 
+#define calc_pe(a,b,c)	(a + b*nx + c*nx*ny)
+#define wrap_x(a)	(((a)+nx)%nx)
+#define wrap_y(a)	(((a)+ny)%ny)
+#define wrap_z(a)	(((a)+nz)%nz)
+
+
 int main(int argc, char **argv)
 {
   int i, myrank, numranks, off;
@@ -36,20 +42,24 @@ int main(int argc, char **argv)
   MPI_Comm_rank(MPI_COMM_WORLD,&myrank);
   MPI_Comm_size(MPI_COMM_WORLD,&numranks);
 
-  if(!myrank && argc < 6) {
-    printf("Correct usage: %s minD maxD neighborhood msg_size_bytes num_iters <count_size>\n",
-      argv[0]);
+  if(argc < 9) {
+    if(!myrank)
+      printf("Correct usage: %s minD maxD neighborhood base_grid_size (x,y,z) msg_size_bytes num_iters <count_size>\n",
+          argv[0]);
     MPI_Abort(MPI_COMM_WORLD, 1);
   }
 
   int minD = atoi(argv[1]);
   int maxD = atoi(argv[2]);
   int neighborhood = atoi(argv[3]);
-  int msg_size = atoi(argv[4]);
-  int MAX_ITER = atoi(argv[5]);
+  int nx = atoi(argv[4]);
+  int ny = atoi(argv[5]);
+  int nz = atoi(argv[6]);
+  int msg_size = atoi(argv[7]);
+  int MAX_ITER = atoi(argv[8]);
   int count_size = 100;
-  if(argc > 6) {
-    count_size = atoi(argv[6]);
+  if(argc > 9) {
+    count_size = atoi(argv[9]);
   }
   
   if(!myrank)
@@ -59,10 +69,17 @@ int main(int argc, char **argv)
   int range = maxD - minD;
   if(range == 0) range = 1;
   int my_degree = (minD + (rand() % range))/1;
+  
+  int myXcoord = (myrank % nx);
+  int myYcoord = (myrank % (nx * ny)) / nx;
+  int myZcoord = (myrank % (nx * ny * nz)) / (nx * ny);
 
   int *neighbors = new int[my_degree];
   for(int i = 0; i < my_degree; i++) {
-    neighbors[i] = (myrank + (rand() % neighborhood)) % numranks;
+    int tx = wrap_x(myXcoord + (((rand() % 2) ? -1 : 1) * (rand() % neighborhood)));
+    int ty = wrap_y(myYcoord + (((rand() % 2) ? -1 : 1) * (rand() % neighborhood)));
+    int tz = wrap_z(myZcoord + (((rand() % 2) ? -1 : 1) * (rand() % neighborhood)));
+    neighbors[i] = calc_pe(tx, ty, tz);
   }
 
   int numNeighbors;

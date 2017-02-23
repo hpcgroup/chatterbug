@@ -7,15 +7,15 @@ if(argv[1] == "-h"):
   quit()
 
 job_sizes = [ 2000, 4000, 8000, 12000, 16000 ]
-#job_names = [ "a2a", "near-neighbor", "permutation", "spread", "subcom-a2a", "stencil3d" ]
-job_names = [ "near-neighbor", "permutation", "spread", "subcom-a2a", "stencil3d" ]
+#job_names = [ "near-neighbor", "permutation", "spread", "subcom-a2a", "stencil3d" ]
+job_names = [ "near-neighbor", "spread", "subcom-a2a", "stencil3d" ]
 max_job_types = len(job_names)
 trace_name = [ "traces_n2000", "traces_n4000", "traces_n8000", "traces_n12000",
                "traces_n16000" ]
 job_shapes = [ [ 10, 10, 20 ], [ 10, 20, 20 ], [ 20, 20, 20],
                [ 20, 20, 30 ], [ 20, 20, 40 ] ]
-nodes_per_router = [ 7, 22, 9, 15 ]
-max_routers = [ 1590, 484, 1200, 722 ]
+nodes_per_router = [ 7, 22, 9, 15, 4 ]
+max_routers = [ 1590, 484, 1200, 722, 2744 ]
 
 min_size = int(argv[1])
 max_size = int(argv[2])
@@ -25,20 +25,23 @@ out_type = int(argv[5])
 out_file = argv[6]
 
 random.seed(int(argv[7]))
-max_ranks = 42000
+max_ranks = 40000
 cur_count = 0
 while(num_samples > 0):
   indices = [ ]
   types = [ ]
-  routers = [ 0, 0, 0, 0 ]
+  routers = [ 0, 0, 0, 0, 0 ]
   ranks = 0
   while(ranks < max_ranks):
     next_index = random.randint(min_size, max_size)
     if(ranks + job_sizes[next_index] <= max_ranks):
+      next_job_type = random.randint(0, max_job_types-1)
+      if(types.count(next_job_type) == 2):
+        continue
       indices.append(next_index)
-      types.append(random.randint(0, max_job_types-1))
+      types.append(next_job_type)
       ranks += job_sizes[next_index]
-      for i in range(4):
+      for i in range(5):
         routers[i] += job_sizes[next_index]/4/nodes_per_router[i] + 1
       if(max_ranks - ranks < job_sizes[min_size]):
         break
@@ -54,7 +57,7 @@ while(num_samples > 0):
           s += str(job_sizes[indices[idx[i]]]/4) + " "
         print (s)
       if(out_type == 1):
-        for net in range(4):
+        for net in range(5):
           if(routers[net] > max_routers[net]):
             print ("Needed more routers than available")
             quit()

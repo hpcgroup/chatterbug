@@ -9,7 +9,9 @@
 #else
 #define shalloc(a,b) malloc(a)
 #endif
+#if OTF
 #include <scorep/SCOREP_User.h>
+#endif
 
 /* We want to wrap entries around, and because mod operator % sometimes
  * misbehaves on negative values. -1 maps to the highest value.
@@ -47,7 +49,7 @@ double startTime;
 double endTime;
 
 int main(int argc, char **argv) {
-  //SCOREP_RECORDING_OFF()
+  SCOREP_RECORDING_OFF()
   int myRank, numPes;
   int *rankmap,*rrankmap;
   int color = 1;
@@ -171,16 +173,24 @@ int main(int argc, char **argv) {
 
   MPI_Barrier(MPI_COMM_WORLD);
 #if CMK_BIGSIM_CHARM
-  AMPI_Set_start_event(MPI_COMM_WORLD);
+  AMPI_Set_startevent(MPI_COMM_WORLD);
 #endif
 
   startTime = MPI_Wtime();
 #if CMK_BIGSIM_CHARM
-  BgTimeLine &timeLine = tTIMELINEREC.timeline;  
+    BgTimeLine &timeLine = tTIMELINEREC.timeline;  
+  if(!myRank)
     BgPrintf("Current time is %f\n");
 #endif
-  SCOREP_RECORDING_ON()
+#if OTF
+  SCOREP_RECORDING_ON();
+  SCOREP_USER_REGION_BY_NAME_BEGIN("TRACER_Loop", SCOREP_USER_REGION_TYPE_COMMON);
+  if(myRank == 0)
+    SCOREP_USER_REGION_BY_NAME_BEGIN("TRACER_WallTime_MainLoop", SCOREP_USER_REGION_TYPE_COMMON);
+#endif
   while(/*error > 0.001 &&*/ iterations < MAX_ITER) {
+    if(myRank == 0)
+      SCOREP_USER_REGION_BY_NAME_BEGIN("TRACER_WallTime_InLoop", SCOREP_USER_REGION_TYPE_COMMON);
     iterations++;
     MPI_Irecv(right_block_in, msg_size, MPI_DOUBLE, calc_pe(wrap_x(myXcoord+1), myYcoord, myZcoord, myTcoord), RIGHT, MPI_COMM_WORLD, &req[RIGHT-1]);
     MPI_Irecv(left_block_in, msg_size, MPI_DOUBLE, calc_pe(wrap_x(myXcoord-1), myYcoord, myZcoord, myTcoord), LEFT, MPI_COMM_WORLD, &req[LEFT-1]);
@@ -207,25 +217,24 @@ int main(int argc, char **argv) {
 
     MPI_Send(forward_block_out, msg_size, MPI_DOUBLE, calc_pe(myXcoord, myYcoord, myZcoord, wrap_t(myTcoord+1)), BACKWARD, MPI_COMM_WORLD);
 
-    //MPI_Waitall(8, req, status);
-    int done_count = 0, flag;
-    while(done_count != 8) {
-      done_count = 0;
-      for(int i = 0; i < 8; i++) {
-        MPI_Test(&req[i], &flag, MPI_STATUS_IGNORE);
-        if(flag == 1) done_count++;
-      }
-    }
+    MPI_Waitall(8, req, status);
     int send = 0, recv;
-    MPI_Reduce(&send, &recv, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
+    //MPI_Reduce(&send, &recv, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
+    //MPI_Bcast(&send, 1, MPI_INT, 0, MPI_COMM_WORLD);
+    MPI_Barrier(MPI_COMM_WORLD);
 
 #if CMK_BIGSIM_CHARM
     BgAdvance(100);
 #endif
   }
+#if OTF
+  if(myRank == 0)
+    SCOREP_USER_REGION_BY_NAME_END("TRACER_WallTime_MainLoop");
+  SCOREP_USER_REGION_BY_NAME_END("TRACER_Loop");
   SCOREP_RECORDING_OFF()
+#endif
 #if CMK_BIGSIM_CHARM
-  AMPI_Set_end_event();
+  AMPI_Set_endevent();
 #endif
   MPI_Barrier(MPI_COMM_WORLD);
 #if CMK_BIGSIM_CHARM
