@@ -4,7 +4,9 @@
 using namespace std;
 #include <vector>
 
-#if CMK_BIGSIM_CHARM
+#if WRITE_OTF2_TRACE
+#include <scorep/SCOREP_User.h>
+#elif CMK_BIGSIM_CHARM
 #include "shared-alloc.h"
 #include "blue.h"
 #include "cktiming.h"     
@@ -28,7 +30,9 @@ int main(int argc, char **argv)
 {
   int i, myrank, numranks, off;
   MPI_Init(&argc,&argv);
-#if CMK_BIGSIM_CHARM
+#if WRITE_OTF2_TRACE
+  SCOREP_RECORDING_OFF();
+#elif CMK_BIGSIM_CHARM
   MPI_Barrier(MPI_COMM_WORLD);
   MPI_Set_trace_status(0);
   MPI_Barrier(MPI_COMM_WORLD);
@@ -101,16 +105,20 @@ int main(int argc, char **argv)
   rreq = new MPI_Request[numNeighbors];
 
   MPI_Barrier(MPI_COMM_WORLD);
-#if CMK_BIGSIM_CHARM
+#if WRITE_OTF2_TRACE
+  SCOREP_RECORDING_ON();
+  SCOREP_USER_REGION_BY_NAME_BEGIN("TRACER_Loop", SCOREP_USER_REGION_TYPE_COMMON);
+  if(!myrank)
+    SCOREP_USER_REGION_BY_NAME_BEGIN("TRACER_WallTime_Loop", SCOREP_USER_REGION_TYPE_COMMON);
+#elif CMK_BIGSIM_CHARM
   MPI_Set_trace_status(1);
   AMPI_Set_startevent(MPI_COMM_WORLD);
-#endif
-  startTime = MPI_Wtime();
-#if CMK_BIGSIM_CHARM
   BgTimeLine &timeLine = tTIMELINEREC.timeline;  
   if(!myrank)
     BgPrintf("Current time is %f\n");
 #endif
+  startTime = MPI_Wtime();
+
   for (i = 0; i < MAX_ITER; i++) {
 #if CMK_BIGSIM_CHARM
     BgMark("SmallMsgs_Setup");
@@ -136,24 +144,28 @@ int main(int argc, char **argv)
     MPI_Loop_to_start();
 #endif
   }
-#if CMK_BIGSIM_CHARM
+
+#if WRITE_OTF2_TRACE
+  SCOREP_USER_REGION_BY_NAME_END("TRACER_Loop");
+#elif CMK_BIGSIM_CHARM
   AMPI_Set_endevent();
-  if(!myrank)
-    BgPrintf("Before barrier Current time is %f\n");
 #endif
   MPI_Barrier(MPI_COMM_WORLD);
   stopTime = MPI_Wtime();
-#if CMK_BIGSIM_CHARM
-  if(!myrank)
-    BgPrintf("After loop Current time is %f\n");
-#endif
 
   if(myrank == 0 && MAX_ITER != 0) {
     printf("Finished %d iterations\n",MAX_ITER);
     printf("Time elapsed per iteration for size %d: %f\n", msg_size, (stopTime -
     startTime)/MAX_ITER);
   }
-#if CMK_BIGSIM_CHARM
+
+#if WRITE_OTF2_TRACE
+  if(!myrank)
+    SCOREP_USER_REGION_BY_NAME_END("TRACER_WallTime_Loop");
+  SCOREP_RECORDING_OFF();
+#elif CMK_BIGSIM_CHARM
+  if(!myrank)
+    BgPrintf("After loop Current time is %f\n");
   MPI_Set_trace_status(0);
   MPI_Barrier(MPI_COMM_WORLD);
 #endif
