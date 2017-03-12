@@ -3,14 +3,16 @@
 #include <stdlib.h>
 #include <strings.h>
 #include <math.h>
+
+#if WRITE_OTF2_TRACE
+#include <scorep/SCOREP_User.h>
+#endif
+
 #if CMK_BIGSIM_CHARM
 #include "shared-alloc.h"
 #include "cktiming.h"
 #else
 #define shalloc(a,b) malloc(a)
-#endif
-#if OTF
-#include <scorep/SCOREP_User.h>
 #endif
 
 /* We want to wrap entries around, and because mod operator % sometimes
@@ -49,12 +51,18 @@ double startTime;
 double endTime;
 
 int main(int argc, char **argv) {
-  SCOREP_RECORDING_OFF()
   int myRank, numPes;
   int *rankmap,*rrankmap;
   int color = 1;
 
   MPI_Init(&argc, &argv);
+#if WRITE_OTF2_TRACE
+  SCOREP_RECORDING_OFF();
+#elif CMK_BIGSIM_CHARM
+  MPI_Barrier(MPI_COMM_WORLD);
+  MPI_Set_trace_status(0);
+  MPI_Barrier(MPI_COMM_WORLD);
+#endif
   MPI_Comm_size(MPI_COMM_WORLD, &numPes);
   MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
   MPI_Request req[8];
@@ -172,25 +180,21 @@ int main(int argc, char **argv) {
   double *backward_block_in = (double *)shalloc(sizeof(double) * msg_size, color++);
 
   MPI_Barrier(MPI_COMM_WORLD);
-#if CMK_BIGSIM_CHARM
+#if WRITE_OTF2_TRACE
+  SCOREP_RECORDING_ON();
+  SCOREP_USER_REGION_BY_NAME_BEGIN("TRACER_Loop", SCOREP_USER_REGION_TYPE_COMMON);
+  if(!myRank)
+    SCOREP_USER_REGION_BY_NAME_BEGIN("TRACER_WallTime_Loop", SCOREP_USER_REGION_TYPE_COMMON);
+#elif CMK_BIGSIM_CHARM
+  MPI_Set_trace_status(1);
   AMPI_Set_startevent(MPI_COMM_WORLD);
-#endif
-
-  startTime = MPI_Wtime();
-#if CMK_BIGSIM_CHARM
-    BgTimeLine &timeLine = tTIMELINEREC.timeline;  
+  BgTimeLine &timeLine = tTIMELINEREC.timeline;
   if(!myRank)
     BgPrintf("Current time is %f\n");
 #endif
-#if OTF
-  SCOREP_RECORDING_ON();
-  SCOREP_USER_REGION_BY_NAME_BEGIN("TRACER_Loop", SCOREP_USER_REGION_TYPE_COMMON);
-  if(myRank == 0)
-    SCOREP_USER_REGION_BY_NAME_BEGIN("TRACER_WallTime_MainLoop", SCOREP_USER_REGION_TYPE_COMMON);
-#endif
+  startTime = MPI_Wtime();
+
   while(/*error > 0.001 &&*/ iterations < MAX_ITER) {
-    if(myRank == 0)
-      SCOREP_USER_REGION_BY_NAME_BEGIN("TRACER_WallTime_InLoop", SCOREP_USER_REGION_TYPE_COMMON);
     iterations++;
     MPI_Irecv(right_block_in, msg_size, MPI_DOUBLE, calc_pe(wrap_x(myXcoord+1), myYcoord, myZcoord, myTcoord), RIGHT, MPI_COMM_WORLD, &req[RIGHT-1]);
     MPI_Irecv(left_block_in, msg_size, MPI_DOUBLE, calc_pe(wrap_x(myXcoord-1), myYcoord, myZcoord, myTcoord), LEFT, MPI_COMM_WORLD, &req[LEFT-1]);
@@ -202,52 +206,49 @@ int main(int argc, char **argv) {
     MPI_Irecv(backward_block_in, msg_size, MPI_DOUBLE, calc_pe(myXcoord, myYcoord, myZcoord, wrap_t(myTcoord-1)), BACKWARD, MPI_COMM_WORLD, &req[BACKWARD-1]);
 
     MPI_Send(left_block_out, msg_size, MPI_DOUBLE, calc_pe(wrap_x(myXcoord-1), myYcoord, myZcoord, myTcoord), RIGHT, MPI_COMM_WORLD);
-
     MPI_Send(right_block_out, msg_size, MPI_DOUBLE, calc_pe(wrap_x(myXcoord+1), myYcoord, myZcoord, myTcoord), LEFT, MPI_COMM_WORLD);
-
     MPI_Send(bottom_block_out, msg_size, MPI_DOUBLE, calc_pe(myXcoord, wrap_y(myYcoord-1), myZcoord, myTcoord), TOP, MPI_COMM_WORLD);
-
     MPI_Send(top_block_out, msg_size, MPI_DOUBLE, calc_pe(myXcoord, wrap_y(myYcoord+1), myZcoord, myTcoord), BOTTOM, MPI_COMM_WORLD);
-
     MPI_Send(back_block_out, msg_size, MPI_DOUBLE, calc_pe(myXcoord, myYcoord, wrap_z(myZcoord-1), myTcoord), FRONT, MPI_COMM_WORLD);
-
     MPI_Send(front_block_out, msg_size, MPI_DOUBLE, calc_pe(myXcoord, myYcoord, wrap_z(myZcoord+1), myTcoord), BACK, MPI_COMM_WORLD);
-
     MPI_Send(backward_block_out, msg_size, MPI_DOUBLE, calc_pe(myXcoord, myYcoord, myZcoord, wrap_t(myTcoord-1)), FORWARD, MPI_COMM_WORLD);
-
     MPI_Send(forward_block_out, msg_size, MPI_DOUBLE, calc_pe(myXcoord, myYcoord, myZcoord, wrap_t(myTcoord+1)), BACKWARD, MPI_COMM_WORLD);
 
     MPI_Waitall(8, req, status);
-    int send = 0, recv;
-    //MPI_Reduce(&send, &recv, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
-    //MPI_Bcast(&send, 1, MPI_INT, 0, MPI_COMM_WORLD);
+    // int send = 0, recv;
+    // MPI_Reduce(&send, &recv, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
+    // MPI_Bcast(&send, 1, MPI_INT, 0, MPI_COMM_WORLD);
     MPI_Barrier(MPI_COMM_WORLD);
 
 #if CMK_BIGSIM_CHARM
     BgAdvance(100);
 #endif
   }
-#if OTF
-  if(myRank == 0)
-    SCOREP_USER_REGION_BY_NAME_END("TRACER_WallTime_MainLoop");
+
+#if WRITE_OTF2_TRACE
   SCOREP_USER_REGION_BY_NAME_END("TRACER_Loop");
-  SCOREP_RECORDING_OFF()
-#endif
-#if CMK_BIGSIM_CHARM
+#elif CMK_BIGSIM_CHARM
   AMPI_Set_endevent();
 #endif
+
   MPI_Barrier(MPI_COMM_WORLD);
-#if CMK_BIGSIM_CHARM
-  if(!myRank)
-    BgPrintf("After loop Current time is %f\n");
-#endif
+  endTime = MPI_Wtime();
 
   if(myRank == 0) {
-    endTime = MPI_Wtime();
     printf("Completed %d iterations\n", iterations);
     printf("Time elapsed per iteration: %f\n", (endTime - startTime)/(MAX_ITER));
   }
 
+#if WRITE_OTF2_TRACE
+  if(!myRank)
+    SCOREP_USER_REGION_BY_NAME_END("TRACER_WallTime_Loop");
+  SCOREP_RECORDING_OFF();
+#elif CMK_BIGSIM_CHARM
+  if(!myRank)
+    BgPrintf("After loop Current time is %f\n");
+  MPI_Set_trace_status(0);
+  MPI_Barrier(MPI_COMM_WORLD);
+#endif
   MPI_Finalize();
   return 0;
 } /* end function main */
