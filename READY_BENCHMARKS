@@ -3,6 +3,7 @@ OTF2
 near-neighbor -> umesh
 spread
 stencil4d
+permutation -> pairs, transpose
 
 
 BigSim
@@ -10,6 +11,6 @@ BigSim
 a2a
 subcom-a2a
 near-neighbor
-perm
+permutation
 spread
 stencil3d

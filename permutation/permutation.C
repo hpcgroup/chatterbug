@@ -2,7 +2,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#if CMK_BIGSIM_CHARM
+#if WRITE_OTF2_TRACE
+#include <scorep/SCOREP_User.h>
+#elif CMK_BIGSIM_CHARM
 #include "shared-alloc.h"
 #include "blue.h"
 #include "cktiming.h"     
@@ -19,12 +21,14 @@ extern "C" void BgMark(const char *str);
 int main(int argc, char **argv)
 {
   MPI_Init(&argc,&argv);
-#if CMK_BIGSIM_CHARM
+#if WRITE_OTF2_TRACE
+  SCOREP_RECORDING_OFF();
+#elif CMK_BIGSIM_CHARM
   MPI_Barrier(MPI_COMM_WORLD);
   MPI_Set_trace_status(0);
   MPI_Barrier(MPI_COMM_WORLD);
 #endif
-  int rank, numranks;
+  int myrank, numranks;
   int numIter = 2;
 
   double starttime, endtime;
@@ -35,7 +39,7 @@ int main(int argc, char **argv)
     numIter = atoi(argv[2]);
   }
 
-  MPI_Comm_rank(MPI_COMM_WORLD,&rank);
+  MPI_Comm_rank(MPI_COMM_WORLD,&myrank);
   MPI_Comm_size(MPI_COMM_WORLD,&numranks);
 
   char *question, *answer;
@@ -48,7 +52,7 @@ int main(int argc, char **argv)
   answer = (char*)malloc(size*sizeof(char));
 #endif
   
-  if(!rank) {
+  if(!myrank) {
     printf("Creating rank pairs\n");
   }
 
@@ -69,7 +73,7 @@ int main(int argc, char **argv)
   }
 #else
   int *partners = (int*)malloc(numranks/2*sizeof(int));
-  if(rank == 0) {
+  if(myrank == 0) {
     for(int i = 0; i < numranks/2; i++) {
       partners[i] = numranks/2 + i;
     }
@@ -87,9 +91,9 @@ int main(int argc, char **argv)
 #endif
 
   int partner;
-  if(rank < numranks/2) {
-    partner = partners[rank];
-    MPI_Send(&rank, 1, MPI_INT, partner, 0, MPI_COMM_WORLD);
+  if(myrank < numranks/2) {
+    partner = partners[myrank];
+    MPI_Send(&myrank, 1, MPI_INT, partner, 0, MPI_COMM_WORLD);
   } else {
     MPI_Recv(&partner, 1, MPI_INT, MPI_ANY_SOURCE, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
   }
@@ -101,16 +105,20 @@ int main(int argc, char **argv)
   int requests[2];
   MPI_Barrier(MPI_COMM_WORLD);
 
-#if CMK_BIGSIM_CHARM
+#if WRITE_OTF2_TRACE
+  SCOREP_RECORDING_ON();
+  SCOREP_USER_REGION_BY_NAME_BEGIN("TRACER_Loop", SCOREP_USER_REGION_TYPE_COMMON);
+  if(!myrank)
+    SCOREP_USER_REGION_BY_NAME_BEGIN("TRACER_WallTime_Loop", SCOREP_USER_REGION_TYPE_COMMON);
+#elif CMK_BIGSIM_CHARM
   MPI_Set_trace_status(1);
   AMPI_Set_startevent(MPI_COMM_WORLD);
-#endif
-  starttime = MPI_Wtime();
-#if CMK_BIGSIM_CHARM
   BgTimeLine &timeLine = tTIMELINEREC.timeline;  
-  if(!rank)
+  if(!myrank)
     BgPrintf("Current time is %f\n");
 #endif
+  starttime = MPI_Wtime();
+
   for(int i = 0; i < numIter; i++) {
 #if CMK_BIGSIM_CHARM
     BgMark("Permuation_Setup");    
@@ -126,28 +134,28 @@ int main(int argc, char **argv)
     MPI_Loop_to_start();
 #endif
   }
-#if CMK_BIGSIM_CHARM
+
+#if WRITE_OTF2_TRACE
+  SCOREP_USER_REGION_BY_NAME_END("TRACER_Loop");
+#elif CMK_BIGSIM_CHARM
   AMPI_Set_endevent();
-  if(!rank)
-    BgPrintf("Before barrier Current time is %f\n");
-#else
-  if(!rank)
-    printf("%d Before barrier Current time is %f\n", rank, MPI_Wtime() - starttime);
 #endif
   MPI_Barrier(MPI_COMM_WORLD);
   endtime = MPI_Wtime();
-#if CMK_BIGSIM_CHARM
-  if(!rank)
+
+  if(myrank == 0 && numIter != 0)
+    printf("[%d] Iters %d Time for size %d is %lf : (%lf %lf)\n",myrank, numIter, size,(endtime-starttime)/(numIter),endtime,starttime);
+
+#if WRITE_OTF2_TRACE
+  if(!myrank)
+    SCOREP_USER_REGION_BY_NAME_END("TRACER_WallTime_Loop");
+  SCOREP_RECORDING_OFF();
+#elif CMK_BIGSIM_CHARM
+  if(!myrank)
     BgPrintf("After loop Current time is %f\n");
   MPI_Set_trace_status(0);
   MPI_Barrier(MPI_COMM_WORLD);
-#else
-  if(!rank)
-    printf("After loop Current time is %f\n", MPI_Wtime() - starttime);
 #endif
   
-  if(rank == 0 && numIter != 0)
-    printf("[%d] Iters %d Time for size %d is %lf : (%lf %lf)\n",rank, numIter, size,(endtime-starttime)/(numIter),endtime,starttime);
-
   MPI_Finalize();
-} 
+}
