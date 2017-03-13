@@ -218,7 +218,7 @@ int main(int argc, char **argv) {
     // int send = 0, recv;
     // MPI_Reduce(&send, &recv, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
     // MPI_Bcast(&send, 1, MPI_INT, 0, MPI_COMM_WORLD);
-    MPI_Barrier(MPI_COMM_WORLD);
+    // MPI_Barrier(MPI_COMM_WORLD);
 
 #if CMK_BIGSIM_CHARM
     BgAdvance(100);
