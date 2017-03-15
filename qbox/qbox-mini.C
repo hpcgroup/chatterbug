@@ -165,10 +165,18 @@ int main(int argc, char **argv)
   int bcast_size = atoi(argv[4]);
   int allreduce_size = atoi(argv[5]);
   int MAX_ITER = atoi(argv[6]);
-  int max_msg_size = 1;
+
+  int myXcoord = myrank % dims[MP_X];	// column number
+  int myYcoord = myrank / dims[MP_X];	// row number
+
+  MPI_Comm X_comm, Y_comm;
+  MPI_Comm_split(MPI_COMM_WORLD, myYcoord, myXcoord, &X_comm);
+  MPI_Comm_split(MPI_COMM_WORLD, myXcoord, myYcoord, &Y_comm);
 
   double startTime, stopTime;
   char *sendbuf, *recvbuf;
+  int *rdispls=NULL, *recvcounts=NULL, *sdispls=NULL, *sendcounts=NULL;
+  int max_msg_size = fft_size * dims[MP_X];
 
 #if CMK_BIGSIM_CHARM
   sendbuf = (char*) shalloc(1, 1);
@@ -176,6 +184,19 @@ int main(int argc, char **argv)
 #else
   sendbuf = (char*) malloc (max_msg_size * sizeof(char));
   recvbuf = (char*) malloc (max_msg_size * sizeof(char));
+  sendcounts = (int *) malloc (dims[MP_X] *sizeof(int));
+  recvcounts = (int *) malloc (dims[MP_X] *sizeof(int));
+  sdispls = (int *) malloc (dims[MP_X] *sizeof(int));
+  rdispls = (int *) malloc (dims[MP_X] *sizeof(int));
+
+  int disp = 0;
+  for ( i = 0; i < dims[MP_X]; i++) {
+    recvcounts[i] = fft_size;
+    sendcounts[i] = fft_size;
+    rdispls[i] = disp;
+    sdispls[i] = disp;
+    disp += fft_size;
+  }
 #endif
 
   MPI_Barrier(MPI_COMM_WORLD);
@@ -204,6 +225,9 @@ int main(int argc, char **argv)
     BgMark("QBOX_Work2");    
     MPI_Loop_to_start();
 #else
+    MPI_Alltoallv(sendbuf, sendcounts, sdispls, MPI_CHAR, recvbuf, recvcounts, rdispls, MPI_CHAR, X_comm);
+    MPI_Allreduce(sendbuf, recvbuf, allreduce_size, MPI_CHAR, MPI_LAND, Y_comm);
+    MPI_Bcast(sendbuf, bcast_size, MPI_CHAR, 0, Y_comm);
 #endif
   }
 
