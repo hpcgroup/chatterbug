@@ -152,19 +152,19 @@ int main(int argc, char **argv)
   MPI_Comm_rank(MPI_COMM_WORLD,&myrank);
   MPI_Comm_size(MPI_COMM_WORLD,&numranks);
 
-  if(!myrank && argc != 7) {
-    printf("Correct usage: ./%s dimX dimY fft_pair_size bcast_size all_reduce_size num_iter\n", argv[0]);
+  if(!myrank && argc != 6) {
+    printf("Correct usage: ./%s dimX fft_pair_size bcast_size all_reduce_size num_iter\n", argv[0]);
     MPI_Abort(MPI_COMM_WORLD, 0);
   }
 
   int dims[2] = {0, 0};
 
   dims[MP_X] = atoi(argv[1]);
-  dims[MP_Y] = atoi(argv[2]);
-  int fft_size = atoi(argv[3]);
-  int bcast_size = atoi(argv[4]);
-  int allreduce_size = atoi(argv[5]);
-  int MAX_ITER = atoi(argv[6]);
+  dims[MP_Y] = numranks / dims[MP_X];
+  int fft_size = atoi(argv[2]);
+  int bcast_size = atoi(argv[3]);
+  int allreduce_size = atoi(argv[4]);
+  int MAX_ITER = atoi(argv[5]);
 
   int myXcoord = myrank % dims[MP_X];	// column number
   int myYcoord = myrank / dims[MP_X];	// row number
