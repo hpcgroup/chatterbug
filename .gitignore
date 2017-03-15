@@ -1,0 +1,9 @@
+*.out
+script-N*
+
+near-neighbor/near-neighbor.otf2
+permutation/permutation.otf2
+qbox/qbox-mini.otf2
+spread/spread.otf2
+stencil4d/stencil4d.otf2
+subcom-a2a/subcomm-a2a.otf2

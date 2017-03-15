@@ -4,6 +4,8 @@ near-neighbor -> umesh
 spread
 stencil4d
 permutation -> pairs, transpose
+qbox -> qbox-mini
+subcom-a2a
 
 
 BigSim
