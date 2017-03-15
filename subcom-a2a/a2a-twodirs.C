@@ -17,8 +17,6 @@ void changeMessage(BgTimeLog *log)
 {                                                   
   log->msgs[0]->msgsize = 5242880;            
 }
-
-extern "C" void BgMark(const char *str);
 #endif
 
 #define calc_pe(a,b,c)  ((a)+(b)*dims[MP_X]+(c)*dims[MP_X]*dims[MP_Y])
@@ -37,44 +35,44 @@ int main(int argc, char **argv)
   MPI_Comm_rank(MPI_COMM_WORLD,&myrank);
   MPI_Comm_size(MPI_COMM_WORLD,&numranks);
 
-  if(!myrank && argc != 5) {
-    printf("Correct usage: ./%s dimX dimY bytes_per_pair num_iter\n", argv[0]);
+  if(!myrank && argc != 6) {
+    printf("Correct usage: ./%s dimX dimY bytes_X bytes_Y num_iter\n", argv[0]);
     MPI_Abort(MPI_COMM_WORLD, 0);
   }
 
   int dims[3] = {0, 0, 0};
   double startTime, stopTime;
 
-  MPI_Request sreq, rreq;
+  MPI_Request *sreq, *rreq;
 
   dims[MP_X] = atoi(argv[1]);
   dims[MP_Y] = atoi(argv[2]);
   dims[MP_Z] = numranks / (dims[MP_X] * dims[MP_Y]);
-  if(dims[MP_X] * dims[MP_Y] * dims[MP_Z] != numranks) {
-    if(!myrank) {
-      printf("Product of dims does not match MPI rank count\n");
-      MPI_Abort(MPI_COMM_WORLD, 0);
-    }
-  }
-  int perrank = atoi(argv[3]);
-  int MAX_ITER = atoi(argv[4]);
+  int perrank_x = atoi(argv[3]);
+  int perrank_y = atoi(argv[4]);
+  int MAX_ITER = atoi(argv[5]);
 
-  int largerGroup = dims[MP_Z];
+  int largerGroup = (dims[MP_X] > dims[MP_Y]) ? dims[MP_X] : dims[MP_Y];
+  int largerMsg = (perrank_x*dims[MP_X] > perrank_y*dims[MP_Y]) ? perrank_x*dims[MP_X] : perrank_y*dims[MP_Y];
 
 #if CMK_BIGSIM_CHARM
-  char *sendbuf = (char*)shalloc(perrank * largerGroup, 1);
-  char *recvbuf = (char*)shalloc(perrank * largerGroup, 1);
+  char *sendbuf = (char*)shalloc(perrank * largerMsg, 1);
+  char *recvbuf = (char*)shalloc(perrank * largerMsg, 1);
 #else
-  char *sendbuf = (char*)malloc(perrank * largerGroup);
-  char *recvbuf = (char*)malloc(perrank * largerGroup);
+  char *sendbuf = (char*)malloc(perrank * largerMsg);
+  char *recvbuf = (char*)malloc(perrank * largerMsg);
 #endif
+
+  sreq = new MPI_Request[largerGroup];
+  rreq = new MPI_Request[largerGroup];
 
   int myXcoord = myrank % dims[MP_X];
   int myYcoord = (myrank % (dims[MP_X] * dims[MP_Y])) / dims[MP_X];
   int myZcoord = (myrank % (dims[MP_X] * dims[MP_Y] * dims[MP_Z])) / (dims[MP_X] * dims[MP_Y]);
 
-  MPI_Comm Z_comm;
-  MPI_Comm_split(MPI_COMM_WORLD, myYcoord*dims[MP_X] + myXcoord, myZcoord, &Z_comm);
+  MPI_Comm X_comm, Y_comm;
+  MPI_Comm_split(MPI_COMM_WORLD, myZcoord*dims[MP_Y] + myYcoord, myXcoord, &X_comm);
+  MPI_Comm_split(MPI_COMM_WORLD, myZcoord*dims[MP_X] + myXcoord, myYcoord, &Y_comm);
 
   MPI_Barrier(MPI_COMM_WORLD);
 #if WRITE_OTF2_TRACE
@@ -85,7 +83,7 @@ int main(int argc, char **argv)
 #elif CMK_BIGSIM_CHARM
   MPI_Set_trace_status(1);
   AMPI_Set_startevent(MPI_COMM_WORLD);
-  BgTimeLine &timeLine = tTIMELINEREC.timeline;  
+  BgTimeLine &timeLine = tTIMELINEREC.timeline;
   if(!myrank)
     BgPrintf("Current time is %f\n");
 #endif
@@ -93,24 +91,37 @@ int main(int argc, char **argv)
 
   for (i = 0; i < MAX_ITER; i++) {
 #if CMK_BIGSIM_CHARM
-    BgMark("FFT_Setup");
     off = 0;
-    for(int zcoord = 1; zcoord < dims[MP_Z]; zcoord++) {
+    for(int ycoord = 1; ycoord < dims[MP_Y]; ycoord++) {
       MPI_Isend(&sendbuf[off], perrank, MPI_CHAR,
-        calc_pe(myXcoord, myYcoord, (zcoord + myZcoord) % dims[MP_Z]), 0,
-        MPI_COMM_WORLD, &sreq);
+        calc_pe(myXcoord, (ycoord + myYcoord) % dims[MP_Y], myZcoord), 0,
+        MPI_COMM_WORLD, &sreq[ycoord]);
       changeMessage(timeLine[timeLine.length() - 3]);
       MPI_Irecv(&recvbuf[off], perrank, MPI_CHAR,
-        calc_pe(myXcoord, myYcoord, (myZcoord - zcoord + dims[MP_Z]) % dims[MP_Z]), 0,
-        MPI_COMM_WORLD, &rreq);
+        calc_pe(myXcoord, (ycoord + myYcoord) % dims[MP_Y], myZcoord), 0,
+        MPI_COMM_WORLD, &rreq[ycoord]);
       off += perrank;
-      MPI_Waitall(1, &sreq, MPI_STATUSES_IGNORE);
-      MPI_Waitall(1, &rreq, MPI_STATUSES_IGNORE);
     }
-    BgMark("FFT_WORK");    
-    MPI_Loop_to_start();
+    BgAdvance(100);    
+    MPI_Waitall(dims[MP_Y] - 1, &sreq[1], MPI_STATUSES_IGNORE);
+    MPI_Waitall(dims[MP_Y] - 1, &rreq[1], MPI_STATUSES_IGNORE);
+    off = 0;
+    for(int xcoord = 1; xcoord < dims[MP_X]; xcoord++) {
+      MPI_Isend(&sendbuf[off], perrank, MPI_CHAR,
+        calc_pe((xcoord + myXcoord) % dims[MP_X], myYcoord, myZcoord), 0,
+        MPI_COMM_WORLD, &sreq[xcoord]);
+      changeMessage(timeLine[timeLine.length() - 3]);
+      MPI_Irecv(&recvbuf[off], perrank, MPI_CHAR,
+        calc_pe((xcoord + myXcoord) % dims[MP_X], myYcoord, myZcoord), 0,
+        MPI_COMM_WORLD, &rreq[xcoord]);
+      off += perrank;
+    }
+    BgAdvance(100);    
+    MPI_Waitall(dims[MP_X] - 1, &sreq[1], MPI_STATUSES_IGNORE);
+    MPI_Waitall(dims[MP_X] - 1, &rreq[1], MPI_STATUSES_IGNORE);
 #else
-    MPI_Alltoall(sendbuf, perrank, MPI_CHAR, recvbuf, perrank, MPI_CHAR, Z_comm);
+    MPI_Alltoall(sendbuf, perrank_x, MPI_CHAR, recvbuf, perrank_x, MPI_CHAR, X_comm);
+    MPI_Alltoall(sendbuf, perrank_y, MPI_CHAR, recvbuf, perrank_y, MPI_CHAR, Y_comm);
 #endif
   }
 
