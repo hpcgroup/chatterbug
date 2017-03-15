@@ -176,7 +176,8 @@ int main(int argc, char **argv)
   double startTime, stopTime;
   char *sendbuf, *recvbuf;
   int *rdispls=NULL, *recvcounts=NULL, *sdispls=NULL, *sendcounts=NULL;
-  int max_msg_size = fft_size * dims[MP_X];
+  int max_msg_size = (allreduce_size > bcast_size) ? allreduce_size : bcast_size;
+  max_msg_size = (max_msg_size > fft_size*dims[MP_X]) ? max_msg_size : fft_size*dims[MP_X];
 
 #if CMK_BIGSIM_CHARM
   sendbuf = (char*) shalloc(1, 1);
