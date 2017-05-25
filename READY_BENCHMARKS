@@ -16,3 +16,59 @@ near-neighbor
 permutation
 spread
 stencil3d
+
+Some comments about the benchmarks:
+---
+near-neighbor: unstructured mesh communication; constructed by starting with a
+regular 3d grid as base and then changing the neighborhood.
+
+Run command: 
+./pgm minD maxD neighborhood base_grid_size (x,y,z) msg_size_bytes num_iters
+- minD, maxD: range of expected degree of each rank (note a regular 3D stencil 
+  has 27 neighbors)
+- neighborhood: how far in each dimension can we go for searching a neighbor
+  (usually a small number like 2-3)
+- grid size: how to lay out the 3D grid of ranks, e.g. 32 ranks can be 4 4 2
+- msg_size: size of message between every pair (in bytes)
+- num_iters: how many iters to run
+
+---
+spread: multi-pair exchange with neighbors selected uniformly randomly; so like
+near-neighbors, but we don't restrict the neighbors to come from the near-by
+ranks in the 3D grid.
+
+Run command: 
+./pgm minD maxD neighborhood msg_size_bytes num_iters count_size
+- neighborhood: how far in MPI rank space to search for neighbors
+- count_size: the total number of MPI ranks
+- Other params same as near-neighbor
+
+---
+stencil4d: regular 4D stencil code.
+
+Run command: 
+./pgm [array_size_X] [array_size_Y] [array_size_Z] [array_size_T] [block_size_X] [block_size_Y] [block_size_Z] [block_size_T] [msg_size] [num_iters]
+- array_size_{X,Y,Z,T}: total dimensions of the grid 
+- block_size_{X,Y,Z,T}: dimension of the grid on each process
+
+---
+permutation: bisection pattern/matrix transpose
+
+Run command: 
+./pgm msg_size num_iters
+
+---
+qbox-mini: mimic comm pattern of qbox
+
+Run command: 
+./pgm dimX fft_pair_size bcast_size all_reduce_size num_iter
+- dimX: size of X dimension of process grid; Y dim is computed as = #ranks/dim_X
+- rest are msg sizes for diff operations
+
+---
+subcom-a2a: all-to-all within subcommunictors along grid dimensions (like FFT)
+
+Run command: 
+./pgm dimX dimY bytes_per_pair num_iter
+- dimX, dimY: lenght of X and Y dims; Z is computed as = #ranks/(dimX*dimY)
+
