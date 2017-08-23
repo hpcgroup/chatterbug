@@ -1,6 +1,4 @@
-CC	= mpicxx
-OPTS	= -O3 -DWRITE_OTF2_TRACE=1 -DSCOREP_USER_ENABLE
-INCS	= -I${SCOREP_INSTALL}/include -I${SCOREP_INSTALL}/include/scorep
+include ../Makefile.common
 
 all: a2a-onedir a2a-twodirs
 

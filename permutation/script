@@ -1,4 +1,0 @@
-#!/bin/bash
-
-runjob -p 4 -n 256 --block $COBALT_PARTNAME : ./permutation-ampi 5120 3 +bglog +x240 +y192 +z64 +tcharm_stacksize 128K
-#runjob -p 8 -n 5760 --block $COBALT_PARTNAME : ./traceR --sync=3  --extramem=1000000 --nkp=781 --end=600000000 -- tracer-dragonfly.conf tracer_config | tee out.log 

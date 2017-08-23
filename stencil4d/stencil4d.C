@@ -11,6 +11,12 @@
 #if CMK_BIGSIM_CHARM
 #include "shared-alloc.h"
 #include "cktiming.h"
+#include "blue.h"
+void changeMessage(BgTimeLog *log)                  
+{                                                   
+  log->msgs[0]->msgsize = 5242880;            
+}
+extern "C" void BgMark(const char *str);
 #else
 #define shalloc(a,b) malloc(a)
 #endif
@@ -143,13 +149,6 @@ int main(int argc, char **argv) {
     printf("Block Dimensions: %d %d %d %d\n", blockDimX, blockDimY, blockDimZ, blockDimT);
   }
 
-  MPI_Comm newComm;
-  int newRank;
-  MPI_Comm_split(MPI_COMM_WORLD, myRank % 2, myRank, &newComm);
-  MPI_Comm_rank(newComm, &newRank);
-  MPI_Sendrecv(&error, 1, MPI_DOUBLE, (newRank + 1) % (numPes/2), 101, &error, 1, 
-    MPI_DOUBLE, (newRank - 1 + numPes/2) % (numPes/2), 101, newComm, MPI_STATUS_IGNORE);
-
   /* Copy left, right, bottom, top, back, forward and backward  blocks into temporary arrays.*/
 
   double *left_block_out    = (double *)shalloc(sizeof(double) * msg_size, color++);
@@ -199,13 +198,37 @@ int main(int argc, char **argv) {
     MPI_Irecv(backward_block_in, msg_size, MPI_DOUBLE, calc_pe(myXcoord, myYcoord, myZcoord, wrap_t(myTcoord-1)), BACKWARD, MPI_COMM_WORLD, &req[BACKWARD-1]);
 
     MPI_Send(left_block_out, msg_size, MPI_DOUBLE, calc_pe(wrap_x(myXcoord-1), myYcoord, myZcoord, myTcoord), RIGHT, MPI_COMM_WORLD);
+#if CMK_BIGSIM_CHARM
+    changeMessage(timeLine[timeLine.length() - 3]);
+#endif
     MPI_Send(right_block_out, msg_size, MPI_DOUBLE, calc_pe(wrap_x(myXcoord+1), myYcoord, myZcoord, myTcoord), LEFT, MPI_COMM_WORLD);
+#if CMK_BIGSIM_CHARM
+    changeMessage(timeLine[timeLine.length() - 3]);
+#endif
     MPI_Send(bottom_block_out, msg_size, MPI_DOUBLE, calc_pe(myXcoord, wrap_y(myYcoord-1), myZcoord, myTcoord), TOP, MPI_COMM_WORLD);
+#if CMK_BIGSIM_CHARM
+    changeMessage(timeLine[timeLine.length() - 3]);
+#endif
     MPI_Send(top_block_out, msg_size, MPI_DOUBLE, calc_pe(myXcoord, wrap_y(myYcoord+1), myZcoord, myTcoord), BOTTOM, MPI_COMM_WORLD);
+#if CMK_BIGSIM_CHARM
+    changeMessage(timeLine[timeLine.length() - 3]);
+#endif
     MPI_Send(back_block_out, msg_size, MPI_DOUBLE, calc_pe(myXcoord, myYcoord, wrap_z(myZcoord-1), myTcoord), FRONT, MPI_COMM_WORLD);
+#if CMK_BIGSIM_CHARM
+    changeMessage(timeLine[timeLine.length() - 3]);
+#endif
     MPI_Send(front_block_out, msg_size, MPI_DOUBLE, calc_pe(myXcoord, myYcoord, wrap_z(myZcoord+1), myTcoord), BACK, MPI_COMM_WORLD);
+#if CMK_BIGSIM_CHARM
+    changeMessage(timeLine[timeLine.length() - 3]);
+#endif
     MPI_Send(backward_block_out, msg_size, MPI_DOUBLE, calc_pe(myXcoord, myYcoord, myZcoord, wrap_t(myTcoord-1)), FORWARD, MPI_COMM_WORLD);
+#if CMK_BIGSIM_CHARM
+    changeMessage(timeLine[timeLine.length() - 3]);
+#endif
     MPI_Send(forward_block_out, msg_size, MPI_DOUBLE, calc_pe(myXcoord, myYcoord, myZcoord, wrap_t(myTcoord+1)), BACKWARD, MPI_COMM_WORLD);
+#if CMK_BIGSIM_CHARM
+    changeMessage(timeLine[timeLine.length() - 3]);
+#endif
 
     MPI_Waitall(8, req, status);
     // int send = 0, recv;
@@ -214,7 +237,8 @@ int main(int argc, char **argv) {
     // MPI_Barrier(MPI_COMM_WORLD);
 
 #if CMK_BIGSIM_CHARM
-    BgAdvance(100);
+    BgMark("Stencil4D_Work");
+    MPI_Loop_to_start();
 #endif
   }
 

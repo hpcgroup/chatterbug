@@ -100,7 +100,7 @@ int main(int argc, char **argv)
       MPI_Irecv(&recvbuf[off], perrank_y, MPI_CHAR,
         calc_pe(myXcoord, (ycoord + myYcoord) % dims[MP_Y], myZcoord), 0,
         MPI_COMM_WORLD, &rreq[ycoord]);
-      off += perrank;
+      off += perrank_x;
     }
     BgAdvance(100);    
     MPI_Waitall(dims[MP_Y] - 1, &sreq[1], MPI_STATUSES_IGNORE);
@@ -114,7 +114,7 @@ int main(int argc, char **argv)
       MPI_Irecv(&recvbuf[off], perrank_x, MPI_CHAR,
         calc_pe((xcoord + myXcoord) % dims[MP_X], myYcoord, myZcoord), 0,
         MPI_COMM_WORLD, &rreq[xcoord]);
-      off += perrank;
+      off += perrank_x;
     }
     BgAdvance(100);    
     MPI_Waitall(dims[MP_X] - 1, &sreq[1], MPI_STATUSES_IGNORE);
