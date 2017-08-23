@@ -97,7 +97,7 @@ int main(int argc, char **argv)
 
   if(myrank == 0 && MAX_ITER != 0) {
     printf("Finished %d iterations\n",MAX_ITER);
-    printf("Time elapsed per iteration for size %d: %f\n", perrank, (stopTime -
+    printf("Time elapsed per iteration for size %d: %f s\n", perrank, (stopTime -
     startTime)/MAX_ITER);
   }
   MPI_Finalize();

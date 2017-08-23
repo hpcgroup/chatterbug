@@ -47,22 +47,25 @@ int main(int argc, char **argv) {
   MPI_Comm_size(MPI_COMM_WORLD, &numPes);
   MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
   MPI_Request req[6];
+  MPI_Request sreq[6];
   MPI_Status status[6];
 
   int blockDimX, blockDimY, blockDimZ;
   int arrayDimX, arrayDimY, arrayDimZ;
   int noBarrier = 0;
 
-  if (argc != 4 && argc != 8) {
+  int msg_size = 1;
+  if (argc != 5 && argc != 9) {
     printf("%s [array_size] [block_size] [Iters]\n", argv[0]);
     printf("%s [array_size_X] [array_size_Y] [array_size_Z] [block_size_X] [block_size_Y] [block_size_Z] [Iters] \n", argv[0]);
     MPI_Abort(MPI_COMM_WORLD, -1);
   }
 
-  if(argc == 4) {
+  if(argc == 5) {
     arrayDimZ = arrayDimY = arrayDimX = atoi(argv[1]);
     blockDimZ = blockDimY = blockDimX = atoi(argv[2]);
-    MAX_ITER = atoi(argv[3]);
+    msg_size = atoi(argv[3]);
+    MAX_ITER = atoi(argv[4]);
   }
   else {
     arrayDimX = atoi(argv[1]);
@@ -71,7 +74,8 @@ int main(int argc, char **argv) {
     blockDimX = atoi(argv[4]);
     blockDimY = atoi(argv[5]);
     blockDimZ = atoi(argv[6]);
-    MAX_ITER = atoi(argv[7]);
+    msg_size = atoi(argv[7]);
+    MAX_ITER = atoi(argv[8]);
   }
 
   int num_blocks_x = (arrayDimX / blockDimX);
@@ -90,7 +94,6 @@ int main(int argc, char **argv) {
     printf("Block Dimensions: %d %d %d\n", blockDimX, blockDimY, blockDimZ);
   }
 
-  int msg_size = 1;
   /* Copy left, right, bottom, top, back, forward and backward  blocks into temporary arrays.*/
 
   double *left_block_out    = (double *)shalloc(sizeof(double) * msg_size, color++);
@@ -119,6 +122,7 @@ int main(int argc, char **argv) {
   if(!myRank)
     BgPrintf("Current time is %f\n");
 #endif
+  startTime = MPI_Wtime();
   while(/*error > 0.001 &&*/ iterations < MAX_ITER) {
     iterations++;
 #if CMK_BIGSIM_CHARM
@@ -131,37 +135,38 @@ int main(int argc, char **argv) {
     MPI_Irecv(front_block_in, msg_size, MPI_DOUBLE, calc_pe(myXcoord, myYcoord, wrap_z(myZcoord+1)),FRONT, MPI_COMM_WORLD, &req[FRONT-1]);
     MPI_Irecv(back_block_in, msg_size, MPI_DOUBLE, calc_pe(myXcoord, myYcoord, wrap_z(myZcoord-1)),BACK, MPI_COMM_WORLD, &req[BACK-1]);
 
-    MPI_Send(left_block_out, msg_size, MPI_DOUBLE, calc_pe(wrap_x(myXcoord-1), myYcoord, myZcoord), RIGHT, MPI_COMM_WORLD);
+    MPI_Isend(left_block_out, msg_size, MPI_DOUBLE, calc_pe(wrap_x(myXcoord-1), myYcoord, myZcoord), RIGHT, MPI_COMM_WORLD, &sreq[RIGHT-1]);
 #if CMK_BIGSIM_CHARM
     changeMessage(timeLine[timeLine.length() - 3]);
 #endif
 
-    MPI_Send(right_block_out, msg_size, MPI_DOUBLE, calc_pe(wrap_x(myXcoord+1), myYcoord, myZcoord), LEFT, MPI_COMM_WORLD);
+    MPI_Isend(right_block_out, msg_size, MPI_DOUBLE, calc_pe(wrap_x(myXcoord+1), myYcoord, myZcoord), LEFT, MPI_COMM_WORLD, &sreq[LEFT-1]);
 #if CMK_BIGSIM_CHARM
     changeMessage(timeLine[timeLine.length() - 3]);
 #endif
 
-    MPI_Send(bottom_block_out, msg_size, MPI_DOUBLE, calc_pe(myXcoord, wrap_y(myYcoord-1), myZcoord), TOP, MPI_COMM_WORLD);
+    MPI_Isend(bottom_block_out, msg_size, MPI_DOUBLE, calc_pe(myXcoord, wrap_y(myYcoord-1), myZcoord), TOP, MPI_COMM_WORLD, &sreq[TOP-1]);
 #if CMK_BIGSIM_CHARM
     changeMessage(timeLine[timeLine.length() - 3]);
 #endif
 
-    MPI_Send(top_block_out, msg_size, MPI_DOUBLE, calc_pe(myXcoord, wrap_y(myYcoord+1), myZcoord), BOTTOM, MPI_COMM_WORLD);
+    MPI_Isend(top_block_out, msg_size, MPI_DOUBLE, calc_pe(myXcoord, wrap_y(myYcoord+1), myZcoord), BOTTOM, MPI_COMM_WORLD, &sreq[BOTTOM-1]);
 #if CMK_BIGSIM_CHARM
     changeMessage(timeLine[timeLine.length() - 3]);
 #endif
 
-    MPI_Send(back_block_out, msg_size, MPI_DOUBLE, calc_pe(myXcoord, myYcoord, wrap_z(myZcoord-1)), FRONT, MPI_COMM_WORLD);
+    MPI_Isend(back_block_out, msg_size, MPI_DOUBLE, calc_pe(myXcoord, myYcoord, wrap_z(myZcoord-1)), FRONT, MPI_COMM_WORLD, &sreq[FRONT-1]);
 #if CMK_BIGSIM_CHARM
     changeMessage(timeLine[timeLine.length() - 3]);
 #endif
 
-    MPI_Send(front_block_out, msg_size, MPI_DOUBLE, calc_pe(myXcoord, myYcoord, wrap_z(myZcoord+1)), BACK, MPI_COMM_WORLD);
+    MPI_Isend(front_block_out, msg_size, MPI_DOUBLE, calc_pe(myXcoord, myYcoord, wrap_z(myZcoord+1)), BACK, MPI_COMM_WORLD, &sreq[BACK-1]);
 #if CMK_BIGSIM_CHARM
     changeMessage(timeLine[timeLine.length() - 3]);
 #endif
 
     MPI_Waitall(6, req, status);
+    MPI_Waitall(6, sreq, status);
 
 #if CMK_BIGSIM_CHARM
     BgMark("Stencil3D_Work");
@@ -180,7 +185,7 @@ int main(int argc, char **argv) {
   if(myRank == 0) {
     endTime = MPI_Wtime();
     printf("Completed %d iterations\n", iterations);
-    printf("Time elapsed per iteration: %f\n", (endTime - startTime)/(MAX_ITER));
+    printf("Time elapsed per iteration: %f s\n", (endTime - startTime)/(MAX_ITER));
   }
 #if CMK_BIGSIM_CHARM
   MPI_Set_trace_status(0);

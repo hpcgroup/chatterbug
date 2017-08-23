@@ -144,7 +144,7 @@ int main(int argc, char **argv)
   endtime = MPI_Wtime();
 
   if(myrank == 0 && numIter != 0)
-    printf("[%d] Iters %d Time for size %d is %lf : (%lf %lf)\n",myrank, numIter, size,(endtime-starttime)/(numIter),endtime,starttime);
+    printf("[%d] Iters %d Time for size %d is %lf s: (%lf %lf)\n",myrank, numIter, size,(endtime-starttime)/(numIter),endtime,starttime);
 
 #if WRITE_OTF2_TRACE
   if(!myrank)

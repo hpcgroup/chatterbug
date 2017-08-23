@@ -1,10 +1,9 @@
-CC ?= mpixlcxx
-OPTS =-O3
+include ../Makefile.common
 
-all:reduction
+all:reduction$(SUFFIX)
 
-reduction: reduction.C
+reduction$(SUFFIX) : reduction.C
 	$(CC) $(OPTS) $(INCS_DEF) -o $@ $<
 
 clean:
-	rm -f reduction charmrun
+	rm -f reduction$(SUFFIX) 

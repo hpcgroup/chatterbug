@@ -1,10 +1,9 @@
-CC ?= mpixlcxx
-OPTS = -O3
+include ../Makefile.common
 
-all:a2a
+all: a2a$(SUFFIX)
 
-a2a: a2a.C
+a2a$(SUFFIX): a2a.C
 	$(CC) $(OPTS) $(INCS_DEF) -o $@ $<
 
 clean:
-	rm -f a2a
+	rm -f a2a$(SUFFIX)

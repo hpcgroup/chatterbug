@@ -243,7 +243,7 @@ int main(int argc, char **argv)
 
   if(myrank == 0 && MAX_ITER != 0) {
     printf("Finished %d iterations\n", MAX_ITER);
-    printf("Time elapsed per iteration: %f\n", (stopTime - startTime)/MAX_ITER);
+    printf("Time elapsed per iteration: %f s\n", (stopTime - startTime)/MAX_ITER);
   }
 
 #if WRITE_OTF2_TRACE

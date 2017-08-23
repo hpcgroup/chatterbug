@@ -1,10 +1,9 @@
-CC ?= mpixlcxx_r
-OPTS = -O3
+include ../Makefile.common
 
-all:ping
+all:ping$(SUFFIX)
 
-ping: ping.C
-	$(CC) $(OPTS) $(INCS) -o $@ $< #-L/soft/perftools/HPM  -lmpitrace
+ping$(SUFFIX): ping.C
+	$(CC) $(OPTS) $(INCS) -o $@ $< 
 
 clean:
-	rm -f ping charmrun
+	rm -f ping$(SUFFIX)

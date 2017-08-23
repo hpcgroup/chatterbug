@@ -72,6 +72,7 @@ int main(int argc, char **argv) {
   MPI_Comm_size(MPI_COMM_WORLD, &numPes);
   MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
   MPI_Request req[8];
+  MPI_Request sreq[8];
   MPI_Status status[8];
   int msg_size = 8;
 
@@ -197,45 +198,41 @@ int main(int argc, char **argv) {
     MPI_Irecv(forward_block_in, msg_size, MPI_DOUBLE, calc_pe(myXcoord, myYcoord, myZcoord, wrap_t(myTcoord+1)), FORWARD, MPI_COMM_WORLD, &req[FORWARD-1]);
     MPI_Irecv(backward_block_in, msg_size, MPI_DOUBLE, calc_pe(myXcoord, myYcoord, myZcoord, wrap_t(myTcoord-1)), BACKWARD, MPI_COMM_WORLD, &req[BACKWARD-1]);
 
-    MPI_Send(left_block_out, msg_size, MPI_DOUBLE, calc_pe(wrap_x(myXcoord-1), myYcoord, myZcoord, myTcoord), RIGHT, MPI_COMM_WORLD);
+    MPI_Isend(left_block_out, msg_size, MPI_DOUBLE, calc_pe(wrap_x(myXcoord-1), myYcoord, myZcoord, myTcoord), RIGHT, MPI_COMM_WORLD, &sreq[0]);
 #if CMK_BIGSIM_CHARM
     changeMessage(timeLine[timeLine.length() - 3]);
 #endif
-    MPI_Send(right_block_out, msg_size, MPI_DOUBLE, calc_pe(wrap_x(myXcoord+1), myYcoord, myZcoord, myTcoord), LEFT, MPI_COMM_WORLD);
+    MPI_Isend(right_block_out, msg_size, MPI_DOUBLE, calc_pe(wrap_x(myXcoord+1), myYcoord, myZcoord, myTcoord), LEFT, MPI_COMM_WORLD, &sreq[1]);
 #if CMK_BIGSIM_CHARM
     changeMessage(timeLine[timeLine.length() - 3]);
 #endif
-    MPI_Send(bottom_block_out, msg_size, MPI_DOUBLE, calc_pe(myXcoord, wrap_y(myYcoord-1), myZcoord, myTcoord), TOP, MPI_COMM_WORLD);
+    MPI_Isend(bottom_block_out, msg_size, MPI_DOUBLE, calc_pe(myXcoord, wrap_y(myYcoord-1), myZcoord, myTcoord), TOP, MPI_COMM_WORLD, &sreq[2]);
 #if CMK_BIGSIM_CHARM
     changeMessage(timeLine[timeLine.length() - 3]);
 #endif
-    MPI_Send(top_block_out, msg_size, MPI_DOUBLE, calc_pe(myXcoord, wrap_y(myYcoord+1), myZcoord, myTcoord), BOTTOM, MPI_COMM_WORLD);
+    MPI_Isend(top_block_out, msg_size, MPI_DOUBLE, calc_pe(myXcoord, wrap_y(myYcoord+1), myZcoord, myTcoord), BOTTOM, MPI_COMM_WORLD, &sreq[3]);
 #if CMK_BIGSIM_CHARM
     changeMessage(timeLine[timeLine.length() - 3]);
 #endif
-    MPI_Send(back_block_out, msg_size, MPI_DOUBLE, calc_pe(myXcoord, myYcoord, wrap_z(myZcoord-1), myTcoord), FRONT, MPI_COMM_WORLD);
+    MPI_Isend(back_block_out, msg_size, MPI_DOUBLE, calc_pe(myXcoord, myYcoord, wrap_z(myZcoord-1), myTcoord), FRONT, MPI_COMM_WORLD, &sreq[4]);
 #if CMK_BIGSIM_CHARM
     changeMessage(timeLine[timeLine.length() - 3]);
 #endif
-    MPI_Send(front_block_out, msg_size, MPI_DOUBLE, calc_pe(myXcoord, myYcoord, wrap_z(myZcoord+1), myTcoord), BACK, MPI_COMM_WORLD);
+    MPI_Isend(front_block_out, msg_size, MPI_DOUBLE, calc_pe(myXcoord, myYcoord, wrap_z(myZcoord+1), myTcoord), BACK, MPI_COMM_WORLD, &sreq[5]);
 #if CMK_BIGSIM_CHARM
     changeMessage(timeLine[timeLine.length() - 3]);
 #endif
-    MPI_Send(backward_block_out, msg_size, MPI_DOUBLE, calc_pe(myXcoord, myYcoord, myZcoord, wrap_t(myTcoord-1)), FORWARD, MPI_COMM_WORLD);
+    MPI_Isend(backward_block_out, msg_size, MPI_DOUBLE, calc_pe(myXcoord, myYcoord, myZcoord, wrap_t(myTcoord-1)), FORWARD, MPI_COMM_WORLD, &sreq[6]);
 #if CMK_BIGSIM_CHARM
     changeMessage(timeLine[timeLine.length() - 3]);
 #endif
-    MPI_Send(forward_block_out, msg_size, MPI_DOUBLE, calc_pe(myXcoord, myYcoord, myZcoord, wrap_t(myTcoord+1)), BACKWARD, MPI_COMM_WORLD);
+    MPI_Isend(forward_block_out, msg_size, MPI_DOUBLE, calc_pe(myXcoord, myYcoord, myZcoord, wrap_t(myTcoord+1)), BACKWARD, MPI_COMM_WORLD, &sreq[7]);
 #if CMK_BIGSIM_CHARM
     changeMessage(timeLine[timeLine.length() - 3]);
 #endif
 
     MPI_Waitall(8, req, status);
-    // int send = 0, recv;
-    // MPI_Reduce(&send, &recv, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
-    // MPI_Bcast(&send, 1, MPI_INT, 0, MPI_COMM_WORLD);
-    // MPI_Barrier(MPI_COMM_WORLD);
-
+    MPI_Waitall(8, sreq, status);
 #if CMK_BIGSIM_CHARM
     BgMark("Stencil4D_Work");
     MPI_Loop_to_start();
@@ -253,7 +250,7 @@ int main(int argc, char **argv) {
 
   if(myRank == 0) {
     printf("Completed %d iterations\n", iterations);
-    printf("Time elapsed per iteration: %f\n", (endTime - startTime)/(MAX_ITER));
+    printf("Time elapsed per iteration: %f s\n", (endTime - startTime)/(MAX_ITER));
   }
 
 #if WRITE_OTF2_TRACE

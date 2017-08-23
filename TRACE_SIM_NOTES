@@ -1,0 +1,82 @@
+For OTF2 tracing, see notes in the TraceR repository:
+https://github.com/LLNL/tracer/blob/master/README.OTF
+
+If you want to use BigSim-based traces, for which it is easier to collect traces
+for large core/node count, you should use the "efficient_trace" branch
+of Charm.
+
+https://charm.cs.illinois.edu/gerrit/gitweb?p=charm.git;a=shortlog;h=refs/heads/efficient_trace
+
+Build instructions for this version are same as the regular Charm :
+
+./build bgampi mpi-linux-x86_64 bigemulator -O2
+
+I have made changes to the Makefiles to make it easier to switch between Charm
+and OTF2 traces. In this code, you only need to update the Makefile.common file
+in the main directory, and all benchmarks will use it.  
+
+NOTES on TRACE GENERATION
+To make trace collection easy and feasible for large node count, these
+benchmarks are meant to run in the following way:
+
+-- Collect traces using very small input message sizes (like 8 bytes or 16
+bytes) as input - this allows Charm++ to create many virtual MPI ranks inside
+a node/core since large memory allocations are not needed. For example, I
+routinely generate traces for 1000 MPI ranks using only 10 real
+cores/processes. 
+
+-- When the traces are generated, these codes internally using the
+"changeMessage" function to replace the small message size with a
+large value 5242880.
+
+-- During simulation, via parameters to the tracer configuration file,
+these large message sizes can be replaced by any message size of choice.
+
+So, in effect, you can generate traces for Stencil4d (or any other
+application) using 8 bytes as an input for the message size, and then in
+simulation change it to any size you like.
+
+The only exception is for qbox-mini : in this benchmark, please provide the
+correct message size when generating traces because this benchmark wants to
+use different message sizes for different types of messages. Internally, it
+will communicate using small messages but will generate logs with the desired
+message size. In this case, we DO NOT change the message sizes during
+simulation.
+
+NOTES on CHANGING MESSAGE SIZE IN SIMULATION
+In the tracer_config file, after specifying the location of trace files, you
+can use lines based on following format to change the message size:
+
+M <job id> <size_limit> <new_size> 
+
+These lines tell traceR that for the given job_id, for all messages whose size
+is greater than size_limit, replace the message size to new_size. job_ids are
+assigned to the jobs sequentially starting from 0 based on their order in the
+file.
+
+For example, M 0 10000 32768 will replace all messages greater than 10 KB by
+32KB.
+
+Since in the given benchmarks, we are artificially making all message sizes to
+be 5242880, we can use any number smaller than it as the size_limit, and use
+the size you desire as new_size.
+
+NOTES on COMPUTATION TIMINGS
+These traces files also contain an easy way to insert computation. In each
+file, you will see that there are calls such as BgMark("Stencil4D_Work");
+
+We have added these calls at appropriate places to represent calls to
+computational kernels for the benchmarks. During simulation, by providing
+input in the tracer_config, you can make simulation insert computation time
+when these markings are encountered. These options in the simulation can be
+added like the message size options at the end of the file using the following
+format.
+
+E <job id> <name used in BgMark> <execution time desired in seconds> 
+
+Example config:
+NA
+1
+traces NA 737280 1
+M 100000 10368000
+E 0 Stencil4D_Work 0.036
