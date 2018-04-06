@@ -11,7 +11,7 @@ using namespace std;
 
 int main(int argc, char **argv)
 {
-  int i, myrank, numranks, off;
+  int i, myrank, numranks;
   MPI_Init(&argc,&argv);
 #if WRITE_OTF2_TRACE
   SCOREP_RECORDING_OFF();
@@ -91,13 +91,13 @@ int main(int argc, char **argv)
     SCOREP_USER_REGION_BY_NAME_BEGIN("TRACER_spread_pre_msg", SCOREP_USER_REGION_TYPE_COMMON);
     SCOREP_USER_REGION_BY_NAME_END("TRACER_spread_pre_msg");
 #endif
-    for(int i = 0; i < numNeighbors; i++) {
-      MPI_Irecv(&recvbuf[i * msg_size], msg_size, MPI_CHAR, MPI_ANY_SOURCE, 0,
-        MPI_COMM_WORLD, &rreq[i]);
+    for(int j = 0; j < numNeighbors; j++) {
+      MPI_Irecv(&recvbuf[j * msg_size], msg_size, MPI_CHAR, MPI_ANY_SOURCE, i,
+        MPI_COMM_WORLD, &rreq[j]);
     }
-    for(int i = 0; i < my_degree; i++) {
-      MPI_Isend(&sendbuf[i * msg_size], msg_size, MPI_CHAR, neighbors[i], 0,
-        MPI_COMM_WORLD, &sreq[i]);
+    for(int j = 0; j < my_degree; j++) {
+      MPI_Isend(&sendbuf[j * msg_size], msg_size, MPI_CHAR, neighbors[j], i,
+        MPI_COMM_WORLD, &sreq[j]);
     }
 #if WRITE_OTF2_TRACE
     // Marks compute region for computation-communication overlap
