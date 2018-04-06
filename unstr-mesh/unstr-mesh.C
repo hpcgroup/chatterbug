@@ -17,7 +17,7 @@ using namespace std;
 
 int main(int argc, char **argv)
 {
-  int i, myrank, numranks, off;
+  int i, myrank, numranks;
   MPI_Init(&argc,&argv);
 #if WRITE_OTF2_TRACE
   SCOREP_RECORDING_OFF();
@@ -25,7 +25,7 @@ int main(int argc, char **argv)
   MPI_Comm_rank(MPI_COMM_WORLD,&myrank);
   MPI_Comm_size(MPI_COMM_WORLD,&numranks);
 
-  if(argc < 8) {
+  if(argc != 9) {
     if(!myrank)
       printf("\nThis is the unstr-mesh communication proxy. The correct usage is:\n"
              "%s nx ny nz minD maxD neighborhood msg_size MAX_ITER\n\n"
