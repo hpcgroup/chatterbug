@@ -1,20 +1,18 @@
-#for no tracing
-CC	= mpicxx
+# no tracing
+CXX		= mpicxx
 OPTS	= -O3 
 INCS	= 
-SUFFIX = .prod
+SUFFIX	= .x
 
-#for OTF2 traces
-#CC	= 	scorep --user --nocompiler --noopenmp --nopomp --nocuda --noopenacc --noopencl --nomemory  mpicxx
-#OPTS	= -O3 -DWRITE_OTF2_TRACE=1 -DSCOREP_USER_ENABLE
-#INCS	= -I${SCOREP_INSTALL}/include -I${SCOREP_INSTALL}/include/scorep
-#SUFFIX = .otf
+# for OTF2 traces
+# CXX	= 	scorep --user --nocompiler --noopenmp --nopomp --nocuda --noopenacc --noopencl --nomemory mpicxx
+# OPTS	= -O3 -DWRITE_OTF2_TRACE=1 -DSCOREP_USER_ENABLE
+# INCS	= -I${SCOREP_INSTALL}/include -I${SCOREP_INSTALL}/include/scorep
+# SUFFIX = .otf2
 
-#for charm traces
-#CC	= /g/g92/jain6/scratch-f/network-sim/charm/mpi-linux-x86_64-bigemulator/bin/ampicxx
-#OPTS	= -O2
-#INCS	= 
-#SUFFIX = .bigsim
-
-
+# for BigSim traces
+# CXX	= /g/g92/jain6/scratch-f/network-sim/charm/mpi-linux-x86_64-bigemulator/bin/ampicxx
+# OPTS	= -O2
+# INCS	=
+# SUFFIX = .bigsim
 
