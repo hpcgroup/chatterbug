@@ -47,6 +47,13 @@ int main(int argc, char **argv)
   int msg_size = atoi(argv[7]);
   int MAX_ITER = atoi(argv[8]);
 
+  if(nx * ny * nz != numranks) {
+    if(!myrank) {
+      printf("\n nx * ny * nz does not equal number of ranks. \n");
+    }
+    MPI_Abort(MPI_COMM_WORLD, 1);
+  }
+
   // figure out my coordinates
   int myXcoord = (myrank % nx);
   int myYcoord = (myrank % (nx * ny)) / nx;
