@@ -9,10 +9,3 @@ SUFFIX	= .x
 # OPTS	= -O3 -DWRITE_OTF2_TRACE=1 -DSCOREP_USER_ENABLE
 # INCS	= -I${SCOREP_INSTALL}/include -I${SCOREP_INSTALL}/include/scorep
 # SUFFIX = .otf2
-
-# for BigSim traces
-# CXX	= /g/g92/jain6/scratch-f/network-sim/charm/mpi-linux-x86_64-bigemulator/bin/ampicxx
-# OPTS	= -O2
-# INCS	=
-# SUFFIX = .bigsim
-
