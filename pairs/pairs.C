@@ -16,24 +16,37 @@ int main(int argc, char **argv)
 #endif
   MPI_Comm_rank(MPI_COMM_WORLD,&myrank);
   MPI_Comm_size(MPI_COMM_WORLD,&numranks);
-  
-  if(argc != 3) {
+
+  if(numranks % 2) {
+    if(!myrank) {
+      printf("\n This code can only be run with an even number of processes. \n");
+    }
+    MPI_Abort(MPI_COMM_WORLD, 1);
+  }
+
+  if(argc != 3 && argc != 4) {
     if(!myrank)
       printf("\nThis is the permutation communication proxy. The correct usage is:\n"
-             "%s msg_size MAX_ITER\n\n"
+             "%s msg_size MAX_ITER <randomize_pairs> \n\n"
              "    msg_size: size of message per pair (in bytes)\n"
-             "    MAX_ITER: how many iters to run\n\n",
+             "    MAX_ITER: how many iters to run\n"
+             "    (optional) randomize_pairs: 0/1 \n\n",
              argv[0]);
     MPI_Abort(MPI_COMM_WORLD, 1);
   }
   
   int msg_size = atoi(argv[1]);
   int MAX_ITER = atoi(argv[2]);
+  int randomize_pairs = 0;
+  if(argc > 3) {
+    randomize_pairs = atoi(argv[3]);
+  }
 
   double startTime, stopTime;
   MPI_Status status;
   int requests[2];
   char *sendbuf, *recvbuf;
+  int partner;
 
   sendbuf = (char*)malloc(msg_size * sizeof(char));
   recvbuf = (char*)malloc(msg_size * sizeof(char));
@@ -42,35 +55,42 @@ int main(int argc, char **argv)
     printf("Creating rank pairs\n");
   }
 
-  int *partners = (int*)malloc(numranks/2 * sizeof(int));
-  if(myrank == 0) {
-    //match every rank with diagonal opposite
-    for(int i = 0; i < numranks/2; i++) {
-      partners[i] = numranks/2 + i;
+  if(randomize_pairs) {
+    int *partners = (int*)malloc(numranks/2 * sizeof(int));
+    if(myrank == 0) {
+      //match every rank with diagonal opposite
+      for(int i = 0; i < numranks/2; i++) {
+        partners[i] = numranks/2 + i;
+      }
+
+      //randomize within the first half
+      srand(RAND_SEED);
+      for(int i = 0; i < 2*numranks; i++) {
+        int index1 = rand() % (numranks/2);
+        int index2 = rand() % (numranks/2);
+        int temp = partners[index1];
+        partners[index1] = partners[index2];
+        partners[index2] = temp;
+      }
+    }
+    MPI_Bcast(partners, numranks/2, MPI_INT, 0, MPI_COMM_WORLD);
+
+    //senders tell the receivers who they are
+    if(myrank < numranks/2) {
+      partner = partners[myrank];
+      MPI_Send(&myrank, 1, MPI_INT, partner, 0, MPI_COMM_WORLD);
+    } else {
+      MPI_Recv(&partner, 1, MPI_INT, MPI_ANY_SOURCE, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     }
 
-    //randomize within the first half
-    srand(RAND_SEED);
-    for(int i = 0; i < 2*numranks; i++) {
-      int index1 = rand() % (numranks/2);
-      int index2 = rand() % (numranks/2);
-      int temp = partners[index1];
-      partners[index1] = partners[index2];
-      partners[index2] = temp;
-    }
-  }
-  MPI_Bcast(partners, numranks/2, MPI_INT, 0, MPI_COMM_WORLD);
-
-  //senders tell the receivers who they are
-  int partner;
-  if(myrank < numranks/2) {
-    partner = partners[myrank];
-    MPI_Send(&myrank, 1, MPI_INT, partner, 0, MPI_COMM_WORLD);
+    free(partners);
   } else {
-    MPI_Recv(&partner, 1, MPI_INT, MPI_ANY_SOURCE, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    if(myrank >= numranks/2) {
+      partner = myrank - numranks/2;
+    } else {
+      partner = myrank + numranks/2;
+    }
   }
-
-  free(partners);
 
   MPI_Barrier(MPI_COMM_WORLD);
 #if WRITE_OTF2_TRACE
