@@ -67,24 +67,24 @@ int main(int argc, char **argv) {
   int myZcoord = (myrank % (nx * ny * nz)) / (nx * ny);
 
   if(myrank == 0) {
-    printf("Running stencil3d on %d processors each with (%d, %d, %d) grid points with %d variables\n", numranks, nx, ny, nz, nvar);
+    printf("Running stencil3d on %d processors each with (%d, %d, %d) grid points with %d variables\n", numranks, bx, by, bz, nvar);
   }
 
   /* left, right, bottom, top, back, forward and backward  blocks into arrays.*/
-  double *left_block_out    = (double *)malloc(sizeof(double) * ny * nz * nvar);
-  double *right_block_out   = (double *)malloc(sizeof(double) * ny * nz * nvar);
-  double *left_block_in     = (double *)malloc(sizeof(double) * ny * nz * nvar);
-  double *right_block_in    = (double *)malloc(sizeof(double) * ny * nz * nvar);
+  double *left_block_out    = (double *)malloc(sizeof(double) * by * bz * nvar);
+  double *right_block_out   = (double *)malloc(sizeof(double) * by * bz * nvar);
+  double *left_block_in     = (double *)malloc(sizeof(double) * by * bz * nvar);
+  double *right_block_in    = (double *)malloc(sizeof(double) * by * bz * nvar);
 
-  double *bottom_block_out  = (double *)malloc(sizeof(double) * nx * nz * nvar);  
-  double *top_block_out     = (double *)malloc(sizeof(double) * nx * nz * nvar);
-  double *bottom_block_in   = (double *)malloc(sizeof(double) * nx * nz * nvar);
-  double *top_block_in      = (double *)malloc(sizeof(double) * nx * nz * nvar);
+  double *bottom_block_out  = (double *)malloc(sizeof(double) * bx * bz * nvar);  
+  double *top_block_out     = (double *)malloc(sizeof(double) * bx * bz * nvar);
+  double *bottom_block_in   = (double *)malloc(sizeof(double) * bx * bz * nvar);
+  double *top_block_in      = (double *)malloc(sizeof(double) * bx * bz * nvar);
   
-  double *front_block_out   = (double *)malloc(sizeof(double) * nx * ny * nvar);
-  double *back_block_out    = (double *)malloc(sizeof(double) * nx * ny * nvar);
-  double *front_block_in    = (double *)malloc(sizeof(double) * nx * ny * nvar);
-  double *back_block_in     = (double *)malloc(sizeof(double) * nx * ny * nvar);
+  double *front_block_out   = (double *)malloc(sizeof(double) * bx * by * nvar);
+  double *back_block_out    = (double *)malloc(sizeof(double) * bx * by * nvar);
+  double *front_block_in    = (double *)malloc(sizeof(double) * bx * by * nvar);
+  double *back_block_in     = (double *)malloc(sizeof(double) * bx * by * nvar);
   
   double startTime, stopTime;
 
@@ -106,20 +106,20 @@ int main(int argc, char **argv) {
     SCOREP_USER_REGION_BY_NAME_END("TRACER_stencil3d_pre_msg");
 #endif
     // post receives: one for each direction and dimension
-    MPI_Irecv(right_block_in, ny * nz * nvar, MPI_DOUBLE, calc_pe(wrap_x(myXcoord+1), myYcoord, myZcoord), RIGHT, MPI_COMM_WORLD, &req[RIGHT-1]);
-    MPI_Irecv(left_block_in, ny * nz * nvar, MPI_DOUBLE, calc_pe(wrap_x(myXcoord-1), myYcoord, myZcoord), LEFT, MPI_COMM_WORLD, &req[LEFT-1]);
-    MPI_Irecv(top_block_in, nx * nz * nvar, MPI_DOUBLE, calc_pe(myXcoord,wrap_y(myYcoord+1), myZcoord), TOP, MPI_COMM_WORLD, &req[TOP-1]);
-    MPI_Irecv(bottom_block_in, nx * nz * nvar, MPI_DOUBLE, calc_pe(myXcoord,wrap_y(myYcoord-1), myZcoord), BOTTOM, MPI_COMM_WORLD, &req[BOTTOM-1]);
-    MPI_Irecv(front_block_in, nx * ny * nvar, MPI_DOUBLE, calc_pe(myXcoord, myYcoord, wrap_z(myZcoord+1)),FRONT, MPI_COMM_WORLD, &req[FRONT-1]);
-    MPI_Irecv(back_block_in, nx * ny * nvar, MPI_DOUBLE, calc_pe(myXcoord, myYcoord, wrap_z(myZcoord-1)),BACK, MPI_COMM_WORLD, &req[BACK-1]);
+    MPI_Irecv(right_block_in, by * bz * nvar, MPI_DOUBLE, calc_pe(wrap_x(myXcoord+1), myYcoord, myZcoord), RIGHT, MPI_COMM_WORLD, &req[RIGHT-1]);
+    MPI_Irecv(left_block_in, by * bz * nvar, MPI_DOUBLE, calc_pe(wrap_x(myXcoord-1), myYcoord, myZcoord), LEFT, MPI_COMM_WORLD, &req[LEFT-1]);
+    MPI_Irecv(top_block_in, bx * bz * nvar, MPI_DOUBLE, calc_pe(myXcoord,wrap_y(myYcoord+1), myZcoord), TOP, MPI_COMM_WORLD, &req[TOP-1]);
+    MPI_Irecv(bottom_block_in, bx * bz * nvar, MPI_DOUBLE, calc_pe(myXcoord,wrap_y(myYcoord-1), myZcoord), BOTTOM, MPI_COMM_WORLD, &req[BOTTOM-1]);
+    MPI_Irecv(front_block_in, bx * by * nvar, MPI_DOUBLE, calc_pe(myXcoord, myYcoord, wrap_z(myZcoord+1)),FRONT, MPI_COMM_WORLD, &req[FRONT-1]);
+    MPI_Irecv(back_block_in, bx * by * nvar, MPI_DOUBLE, calc_pe(myXcoord, myYcoord, wrap_z(myZcoord-1)),BACK, MPI_COMM_WORLD, &req[BACK-1]);
 
     // initiate sends: one for each direction and dimension
-    MPI_Isend(left_block_out, ny * nz * nvar, MPI_DOUBLE, calc_pe(wrap_x(myXcoord-1), myYcoord, myZcoord), RIGHT, MPI_COMM_WORLD, &sreq[RIGHT-1]);
-    MPI_Isend(right_block_out, ny * nz * nvar, MPI_DOUBLE, calc_pe(wrap_x(myXcoord+1), myYcoord, myZcoord), LEFT, MPI_COMM_WORLD, &sreq[LEFT-1]);
-    MPI_Isend(bottom_block_out, nx * nz * nvar, MPI_DOUBLE, calc_pe(myXcoord, wrap_y(myYcoord-1), myZcoord), TOP, MPI_COMM_WORLD, &sreq[TOP-1]);
-    MPI_Isend(top_block_out, nx * nz * nvar, MPI_DOUBLE, calc_pe(myXcoord, wrap_y(myYcoord+1), myZcoord), BOTTOM, MPI_COMM_WORLD, &sreq[BOTTOM-1]);
-    MPI_Isend(back_block_out, nx * ny * nvar, MPI_DOUBLE, calc_pe(myXcoord, myYcoord, wrap_z(myZcoord-1)), FRONT, MPI_COMM_WORLD, &sreq[FRONT-1]);
-    MPI_Isend(front_block_out, nx * ny * nvar, MPI_DOUBLE, calc_pe(myXcoord, myYcoord, wrap_z(myZcoord+1)), BACK, MPI_COMM_WORLD, &sreq[BACK-1]);
+    MPI_Isend(left_block_out, by * bz * nvar, MPI_DOUBLE, calc_pe(wrap_x(myXcoord-1), myYcoord, myZcoord), RIGHT, MPI_COMM_WORLD, &sreq[RIGHT-1]);
+    MPI_Isend(right_block_out, by * bz * nvar, MPI_DOUBLE, calc_pe(wrap_x(myXcoord+1), myYcoord, myZcoord), LEFT, MPI_COMM_WORLD, &sreq[LEFT-1]);
+    MPI_Isend(bottom_block_out, bx * bz * nvar, MPI_DOUBLE, calc_pe(myXcoord, wrap_y(myYcoord-1), myZcoord), TOP, MPI_COMM_WORLD, &sreq[TOP-1]);
+    MPI_Isend(top_block_out, bx * bz * nvar, MPI_DOUBLE, calc_pe(myXcoord, wrap_y(myYcoord+1), myZcoord), BOTTOM, MPI_COMM_WORLD, &sreq[BOTTOM-1]);
+    MPI_Isend(back_block_out, bx * by * nvar, MPI_DOUBLE, calc_pe(myXcoord, myYcoord, wrap_z(myZcoord-1)), FRONT, MPI_COMM_WORLD, &sreq[FRONT-1]);
+    MPI_Isend(front_block_out, bx * by * nvar, MPI_DOUBLE, calc_pe(myXcoord, myYcoord, wrap_z(myZcoord+1)), BACK, MPI_COMM_WORLD, &sreq[BACK-1]);
 
 #if WRITE_OTF2_TRACE
     // Marks compute region for computation-communication overlap
