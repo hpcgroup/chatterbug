@@ -109,14 +109,15 @@ int main(int argc, char **argv)
   if(!myrank)
     SCOREP_USER_REGION_BY_NAME_BEGIN("TRACER_WallTime_umesh", SCOREP_USER_REGION_TYPE_COMMON);
 #endif
-  startTime = MPI_Wtime();
 
+  startTime = MPI_Wtime();
   for (i = 0; i < MAX_ITER; i++) {
 #if WRITE_OTF2_TRACE
     // Marks compute region before messaging
     SCOREP_USER_REGION_BY_NAME_BEGIN("TRACER_umesh_pre_msg", SCOREP_USER_REGION_TYPE_COMMON);
     SCOREP_USER_REGION_BY_NAME_END("TRACER_umesh_pre_msg");
 #endif
+
     for(int j = 0; j < numNeighbors; j++) {
       MPI_Irecv(&recvbuf[j * msg_size], msg_size, MPI_CHAR, MPI_ANY_SOURCE, i,
         MPI_COMM_WORLD, &rreq[j]);
@@ -125,13 +126,16 @@ int main(int argc, char **argv)
       MPI_Isend(&sendbuf[j * msg_size], msg_size, MPI_CHAR, neighbors[j], i,
         MPI_COMM_WORLD, &sreq[j]);
     }
+
 #if WRITE_OTF2_TRACE
     // Marks compute region for computation-communication overlap
     SCOREP_USER_REGION_BY_NAME_BEGIN("TRACER_umesh_overlap", SCOREP_USER_REGION_TYPE_COMMON);
     SCOREP_USER_REGION_BY_NAME_END("TRACER_umesh_overlap");
 #endif
+
     MPI_Waitall(my_degree, &sreq[0], MPI_STATUSES_IGNORE);
     MPI_Waitall(numNeighbors, &rreq[0], MPI_STATUSES_IGNORE);
+
 #if WRITE_OTF2_TRACE
     // Marks compute region after messaging
     SCOREP_USER_REGION_BY_NAME_BEGIN("TRACER_umesh_post_msg", SCOREP_USER_REGION_TYPE_COMMON);
@@ -155,8 +159,8 @@ int main(int argc, char **argv)
 
   if(myrank == 0 && MAX_ITER != 0) {
     printf("Finished %d iterations\n",MAX_ITER);
-    printf("Time elapsed per iteration for size %d: %f s\n", msg_size, (stopTime -
-    startTime)/MAX_ITER);
+    printf("Time elapsed per iteration for size %d: %f s\n", msg_size, 
+    (stopTime - startTime)/MAX_ITER);
   }
 
   MPI_Finalize();
