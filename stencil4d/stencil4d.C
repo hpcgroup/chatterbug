@@ -8,261 +8,172 @@
 #include <scorep/SCOREP_User.h>
 #endif
 
-#if CMK_BIGSIM_CHARM
-#include "shared-alloc.h"
-#include "cktiming.h"
-#include "blue.h"
-void changeMessage(BgTimeLog *log)                  
-{                                                   
-  log->msgs[0]->msgsize = 5242880;            
-}
-extern "C" void BgMark(const char *str);
-#else
-#define shalloc(a,b) malloc(a)
-#endif
+#define calc_pe(a,b,c,d)	(a + b*nx + c*nx*ny + d*nx*ny*nz)
+#define wrap_x(a)	(((a)+nx)%nx)
+#define wrap_y(a)	(((a)+ny)%ny)
+#define wrap_z(a)	(((a)+nz)%nz)
+#define wrap_t(a)	(((a)+nt)%nt)
 
-/* We want to wrap entries around, and because mod operator % sometimes
- * misbehaves on negative values. -1 maps to the highest value.
- */
-
-#define CA      1
-#define CB      1
-#define CC      1
-#define CD      1
-#define PA      1
-#define PAB     1
-#define PABC    1
-#define PABCD   1
-#define wrap_x(a)	(((a)+num_blocks_x)%num_blocks_x)
-#define wrap_y(a)	(((a)+num_blocks_y)%num_blocks_y)
-#define wrap_z(a)	(((a)+num_blocks_z)%num_blocks_z)
-#define wrap_t(a)	(((a)+num_blocks_t)%num_blocks_t)
-
-#define calc_pe(a,b,c,d)	(((a/CA) + (b/CB)*num_blocks_x_c + (c/CC)*num_blocks_x_c*num_blocks_y_c \
-				+ (d/CD)*num_blocks_x_c*num_blocks_y_c*num_blocks_z_c) * PABCD + \
-                                (a%CA) + (b%CB)*PA + (c%CC)*PAB + (d%CD)*PABC)
-
-int MAX_ITER=2;
-#define LEFT		1
-#define RIGHT		2
-#define TOP		3
-#define BOTTOM		4
-#define FRONT		5
-#define BACK		6
-#define FORWARD		7
-#define BACKWARD	8
-#define DIVIDEBY9	0.11111111111111111
-
-double startTime;
-double endTime;
+#define LEFT		    1
+#define RIGHT		    2
+#define TOP		      3
+#define BOTTOM		  4
+#define FRONT		    5
+#define BACK		    6
+#define FORWARD		  7
+#define BACKWARD    8
 
 int main(int argc, char **argv) {
-  int myRank, numPes;
-  int *rankmap,*rrankmap;
-  int color = 1;
-
+  int myrank, numranks;
   MPI_Init(&argc, &argv);
 #if WRITE_OTF2_TRACE
   SCOREP_RECORDING_OFF();
-#elif CMK_BIGSIM_CHARM
-  MPI_Barrier(MPI_COMM_WORLD);
-  MPI_Set_trace_status(0);
-  MPI_Barrier(MPI_COMM_WORLD);
 #endif
-  MPI_Comm_size(MPI_COMM_WORLD, &numPes);
-  MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
+  MPI_Comm_size(MPI_COMM_WORLD, &numranks);
+  MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
+  
+  if(argc != 11) {
+    if(!myrank)
+      printf("\nThis is the stencil4D (aka halo4d) communication proxy. The correct usage is:\n"
+             "%s nx ny nz nt bx by bz bt nvar MAX_ITER\n\n"
+             "    nx, ny, nz, nt: layout of process grid in 4D\n"
+             "    bx, by, bz, bt: grid size on each process\n"
+             "    nvar: number of variables at each grid point\n"
+             "    MAX_ITER: how many iters to run\n\n",
+             argv[0]);
+    MPI_Abort(MPI_COMM_WORLD, 1);
+  }
+
   MPI_Request req[8];
   MPI_Request sreq[8];
   MPI_Status status[8];
-  int msg_size = 8;
 
-  int blockDimX, blockDimY, blockDimZ, blockDimT;
-  int arrayDimX, arrayDimY, arrayDimZ, arrayDimT;
+  int nx = atoi(argv[1]);
+  int ny = atoi(argv[2]);
+  int nz = atoi(argv[3]);
+  int nt = atoi(argv[4]);
+  int bx = atoi(argv[5]);
+  int by = atoi(argv[6]);
+  int bz = atoi(argv[7]);
+  int bt = atoi(argv[8]);
+  int nvar = atoi(argv[9]);
+  int MAX_ITER = atoi(argv[10]);
 
-  if (argc != 5 && argc != 11) {
-    printf("%s [array_size] [block_size] [msg_size] [iters] \n", argv[0]);
-    printf("%s [array_size_X] [array_size_Y] [array_size_Z] [array_size_T] [block_size_X] [block_size_Y] [block_size_Z] [block_size_T] [msg_size] [iters]\n", argv[0]);
-    MPI_Abort(MPI_COMM_WORLD, -1);
-  }
-
-  if(argc == 4) {
-    arrayDimT = arrayDimZ = arrayDimY = arrayDimX = atoi(argv[1]);
-    blockDimT = blockDimZ = blockDimY = blockDimX = atoi(argv[2]);
-    msg_size = atoi(argv[3])/8;
-    MAX_ITER = atoi(argv[4]);
-  }
-  else {
-    arrayDimX = atoi(argv[1]);
-    arrayDimY = atoi(argv[2]);
-    arrayDimZ = atoi(argv[3]);
-    arrayDimT = atoi(argv[4]);
-    blockDimX = atoi(argv[5]);
-    blockDimY = atoi(argv[6]);
-    blockDimZ = atoi(argv[7]);
-    blockDimT = atoi(argv[8]);
-    msg_size = atoi(argv[9])/8;
-    MAX_ITER = atoi(argv[10]);
+  if(nx * ny * nz * nt != numranks) {
+    if(!myrank) {
+      printf("\n nx * ny * nz * nt does not equal number of ranks. \n");
+    }
+    MPI_Abort(MPI_COMM_WORLD, 1);
   }
 
-  if (arrayDimX < blockDimX || arrayDimX % blockDimX != 0) {
-    printf("array_size_X % block_size_X != 0!\n");
-    MPI_Abort(MPI_COMM_WORLD, -1);
-  }
-  if (arrayDimY < blockDimY || arrayDimY % blockDimY != 0) {
-    printf("array_size_Y % block_size_Y != 0!\n");
-    MPI_Abort(MPI_COMM_WORLD, -1);
-  }
-  if (arrayDimZ < blockDimZ || arrayDimZ % blockDimZ != 0) {
-    printf("array_size_Z % block_size_Z != 0!\n");
-    MPI_Abort(MPI_COMM_WORLD, -1);
-  }
-  if (arrayDimT < blockDimT || arrayDimT % blockDimT != 0) {
-    printf("array_size_T % block_size_T != 0!\n");
-    MPI_Abort(MPI_COMM_WORLD, -1);
+  // figure out my coordinates
+  int myXcoord = (myrank % nx);
+  int myYcoord = (myrank % (nx * ny)) / nx;
+  int myZcoord = (myrank % (nx * ny * nz)) / (nx * ny);
+  int myTcoord = (myrank % (nx * ny * nz * nt)) / (nx * ny * nt);
+
+  if(myrank == 0) {
+    printf("Running stencil4d on %d processors each with (%d, %d, %d, %d) grid points with %d variables\n", numranks, bx, by, bz, bt, nvar);
   }
 
-  int num_blocks_x = (arrayDimX / blockDimX);
-  int num_blocks_y = (arrayDimY / blockDimY);
-  int num_blocks_z = (arrayDimZ / blockDimZ);
-  int num_blocks_t = (arrayDimT / blockDimT);
+  /* left, right, bottom, top, back, forward and backward  blocks into arrays.*/
+  double *left_block_out    = (double *)malloc(sizeof(double) * by * bz * bt * nvar);
+  double *right_block_out   = (double *)malloc(sizeof(double) * by * bz * bt * nvar);
+  double *left_block_in     = (double *)malloc(sizeof(double) * by * bz * bt * nvar);
+  double *right_block_in    = (double *)malloc(sizeof(double) * by * bz * bt * nvar);
+
+  double *bottom_block_out  = (double *)malloc(sizeof(double) * bx * bz * bt * nvar);  
+  double *top_block_out     = (double *)malloc(sizeof(double) * bx * bz * bt * nvar);
+  double *bottom_block_in   = (double *)malloc(sizeof(double) * bx * bz * bt * nvar);
+  double *top_block_in      = (double *)malloc(sizeof(double) * bx * bz * bt * nvar);
   
-  int num_blocks_x_c = (arrayDimX / blockDimX)/CA;
-  int num_blocks_y_c = (arrayDimY / blockDimY)/CB;
-  int num_blocks_z_c = (arrayDimZ / blockDimZ)/CC;
-  int num_blocks_t_c = (arrayDimT / blockDimT)/CD;
-
-  int myXcoord = (myRank/PABCD) % num_blocks_x_c;
-  int myYcoord = (myRank/PABCD) % (num_blocks_x_c * num_blocks_y_c) / num_blocks_x_c;
-  int myZcoord = (myRank/PABCD) % (num_blocks_x_c * num_blocks_y_c * num_blocks_z_c) / (num_blocks_x_c * num_blocks_y_c);
-  int myTcoord = (myRank/PABCD) / (num_blocks_x_c * num_blocks_y_c * num_blocks_z_c);
-
-  myXcoord = (myXcoord * CA) + (myRank % PABCD) % CA;
-  myYcoord = (myYcoord * CB) + ((myRank % PABCD)/PA) % CB;
-  myZcoord = (myZcoord * CC) + ((myRank % PABCD)/PAB) % CC;
-  myTcoord = (myTcoord * CD) + ((myRank % PABCD)/PABC) % CD;
-
-  int iterations = 0, j, k, l;
-  double error = 1.0, max_error = 0.0;
-
-  if(myRank == 0) {
-    printf("Running Jacobi on %d processors with (%d, %d, %d, %d) elements\n", numPes, num_blocks_x, num_blocks_y, num_blocks_z, num_blocks_t);
-    printf("Array Dimensions: %d %d %d %d\n", arrayDimX, arrayDimY, arrayDimZ, arrayDimT);
-    printf("Block Dimensions: %d %d %d %d\n", blockDimX, blockDimY, blockDimZ, blockDimT);
-  }
-
-  /* Copy left, right, bottom, top, back, forward and backward  blocks into temporary arrays.*/
-
-  double *left_block_out    = (double *)shalloc(sizeof(double) * msg_size, color++);
-  double *right_block_out   = (double *)shalloc(sizeof(double) * msg_size, color++);
-  double *left_block_in     = (double *)shalloc(sizeof(double) * msg_size, color++);
-  double *right_block_in    = (double *)shalloc(sizeof(double) * msg_size, color++);
-
-  double *bottom_block_out  = (double *)shalloc(sizeof(double) * msg_size, color++);  
-  double *top_block_out     = (double *)shalloc(sizeof(double) * msg_size, color++);
-  double *bottom_block_in   = (double *)shalloc(sizeof(double) * msg_size, color++);
-  double *top_block_in      = (double *)shalloc(sizeof(double) * msg_size, color++);
+  double *front_block_out   = (double *)malloc(sizeof(double) * bx * by * bt * nvar);
+  double *back_block_out    = (double *)malloc(sizeof(double) * bx * by * bt * nvar);
+  double *front_block_in    = (double *)malloc(sizeof(double) * bx * by * bt * nvar);
+  double *back_block_in     = (double *)malloc(sizeof(double) * bx * by * bt * nvar);
   
-  double *front_block_out   = (double *)shalloc(sizeof(double) * msg_size, color++);
-  double *back_block_out    = (double *)shalloc(sizeof(double) * msg_size, color++);
-  double *front_block_in    = (double *)shalloc(sizeof(double) * msg_size, color++);
-  double *back_block_in     = (double *)shalloc(sizeof(double) * msg_size, color++);
-  
-  double *forward_block_out = (double *)shalloc(sizeof(double) * msg_size, color++);
-  double *backward_block_out= (double *)shalloc(sizeof(double) * msg_size, color++);
-  double *forward_block_in  = (double *)shalloc(sizeof(double) * msg_size, color++);
-  double *backward_block_in = (double *)shalloc(sizeof(double) * msg_size, color++);
+  double *forward_block_out   = (double *)malloc(sizeof(double) * bx * by * bz * nvar);
+  double *backward_block_out  = (double *)malloc(sizeof(double) * bx * by * bz * nvar);
+  double *forward_block_in    = (double *)malloc(sizeof(double) * bx * by * bz * nvar);
+  double *backward_block_in   = (double *)malloc(sizeof(double) * bx * by * bz * nvar);
+
+  double startTime, stopTime;
 
   MPI_Barrier(MPI_COMM_WORLD);
 #if WRITE_OTF2_TRACE
   SCOREP_RECORDING_ON();
+  // Marks the beginning of code region to be repeated in simulation
   SCOREP_USER_REGION_BY_NAME_BEGIN("TRACER_Loop", SCOREP_USER_REGION_TYPE_COMMON);
-  if(!myRank)
-    SCOREP_USER_REGION_BY_NAME_BEGIN("TRACER_WallTime_Loop", SCOREP_USER_REGION_TYPE_COMMON);
-#elif CMK_BIGSIM_CHARM
-  MPI_Set_trace_status(1);
-  AMPI_Set_startevent(MPI_COMM_WORLD);
-  BgTimeLine &timeLine = tTIMELINEREC.timeline;
-  if(!myRank)
-    BgPrintf("Current time is %f\n");
+  // Marks when to print a timer in simulation
+  if(!myrank)
+    SCOREP_USER_REGION_BY_NAME_BEGIN("TRACER_WallTime_stencil4d", SCOREP_USER_REGION_TYPE_COMMON);
 #endif
+  
   startTime = MPI_Wtime();
+  for (int i = 0; i < MAX_ITER; i++) {
+#if WRITE_OTF2_TRACE
+    // Marks compute region before messaging
+    SCOREP_USER_REGION_BY_NAME_BEGIN("TRACER_stencil4d_pre_msg", SCOREP_USER_REGION_TYPE_COMMON);
+    SCOREP_USER_REGION_BY_NAME_END("TRACER_stencil4d_pre_msg");
+#endif
+    // post receives: one for each direction and dimension
+    MPI_Irecv(right_block_in, by * bz * bt * nvar, MPI_DOUBLE, calc_pe(wrap_x(myXcoord+1), myYcoord, myZcoord, myTcoord), RIGHT, MPI_COMM_WORLD, &req[RIGHT-1]);
+    MPI_Irecv(left_block_in, by * bz * bt * nvar, MPI_DOUBLE, calc_pe(wrap_x(myXcoord-1), myYcoord, myZcoord, myTcoord), LEFT, MPI_COMM_WORLD, &req[LEFT-1]);
+    MPI_Irecv(top_block_in, bx * bz * bt * nvar, MPI_DOUBLE, calc_pe(myXcoord,wrap_y(myYcoord+1), myZcoord, myTcoord), TOP, MPI_COMM_WORLD, &req[TOP-1]);
+    MPI_Irecv(bottom_block_in, bx * bz * bt * nvar, MPI_DOUBLE, calc_pe(myXcoord,wrap_y(myYcoord-1), myZcoord, myTcoord), BOTTOM, MPI_COMM_WORLD, &req[BOTTOM-1]);
+    MPI_Irecv(front_block_in, bx * by * bt * nvar, MPI_DOUBLE, calc_pe(myXcoord, myYcoord, wrap_z(myZcoord+1), myTcoord), FRONT, MPI_COMM_WORLD, &req[FRONT-1]);
+    MPI_Irecv(back_block_in, bx * by * bt * nvar, MPI_DOUBLE, calc_pe(myXcoord, myYcoord, wrap_z(myZcoord-1), myTcoord), BACK, MPI_COMM_WORLD, &req[BACK-1]);
+    MPI_Irecv(forward_block_in, bx * by * bz * nvar, MPI_DOUBLE, calc_pe(myXcoord, myYcoord, myZcoord, wrap_t(myTcoord+1)), FORWARD, MPI_COMM_WORLD, &req[FORWARD-1]);
+    MPI_Irecv(backward_block_in, bx * by * bz * nvar, MPI_DOUBLE, calc_pe(myXcoord, myYcoord, myZcoord, wrap_t(myTcoord-1)), BACKWARD, MPI_COMM_WORLD, &req[BACKWARD-1]);
 
-  while(/*error > 0.001 &&*/ iterations < MAX_ITER) {
-    iterations++;
-    MPI_Irecv(right_block_in, msg_size, MPI_DOUBLE, calc_pe(wrap_x(myXcoord+1), myYcoord, myZcoord, myTcoord), RIGHT, MPI_COMM_WORLD, &req[RIGHT-1]);
-    MPI_Irecv(left_block_in, msg_size, MPI_DOUBLE, calc_pe(wrap_x(myXcoord-1), myYcoord, myZcoord, myTcoord), LEFT, MPI_COMM_WORLD, &req[LEFT-1]);
-    MPI_Irecv(top_block_in, msg_size, MPI_DOUBLE, calc_pe(myXcoord,wrap_y(myYcoord+1), myZcoord, myTcoord), TOP, MPI_COMM_WORLD, &req[TOP-1]);
-    MPI_Irecv(bottom_block_in, msg_size, MPI_DOUBLE, calc_pe(myXcoord,wrap_y(myYcoord-1), myZcoord, myTcoord), BOTTOM, MPI_COMM_WORLD, &req[BOTTOM-1]);
-    MPI_Irecv(front_block_in, msg_size, MPI_DOUBLE, calc_pe(myXcoord, myYcoord, wrap_z(myZcoord+1), myTcoord),FRONT, MPI_COMM_WORLD, &req[FRONT-1]);
-    MPI_Irecv(back_block_in, msg_size, MPI_DOUBLE, calc_pe(myXcoord, myYcoord, wrap_z(myZcoord-1), myTcoord),BACK, MPI_COMM_WORLD, &req[BACK-1]);
-    MPI_Irecv(forward_block_in, msg_size, MPI_DOUBLE, calc_pe(myXcoord, myYcoord, myZcoord, wrap_t(myTcoord+1)), FORWARD, MPI_COMM_WORLD, &req[FORWARD-1]);
-    MPI_Irecv(backward_block_in, msg_size, MPI_DOUBLE, calc_pe(myXcoord, myYcoord, myZcoord, wrap_t(myTcoord-1)), BACKWARD, MPI_COMM_WORLD, &req[BACKWARD-1]);
+    // initiate sends: one for each direction and dimension
+    MPI_Isend(left_block_out, by * bz * bt * nvar, MPI_DOUBLE, calc_pe(wrap_x(myXcoord-1), myYcoord, myZcoord, myTcoord), RIGHT, MPI_COMM_WORLD, &sreq[RIGHT-1]);
+    MPI_Isend(right_block_out, by * bz * bt * nvar, MPI_DOUBLE, calc_pe(wrap_x(myXcoord+1), myYcoord, myZcoord, myTcoord), LEFT, MPI_COMM_WORLD, &sreq[LEFT-1]);
+    MPI_Isend(bottom_block_out, bx * bz * bt * nvar, MPI_DOUBLE, calc_pe(myXcoord, wrap_y(myYcoord-1), myZcoord, myTcoord), TOP, MPI_COMM_WORLD, &sreq[TOP-1]);
+    MPI_Isend(top_block_out, bx * bz * bt * nvar, MPI_DOUBLE, calc_pe(myXcoord, wrap_y(myYcoord+1), myZcoord, myTcoord), BOTTOM, MPI_COMM_WORLD, &sreq[BOTTOM-1]);
+    MPI_Isend(back_block_out, bx * by * bt * nvar, MPI_DOUBLE, calc_pe(myXcoord, myYcoord, wrap_z(myZcoord-1), myTcoord), FRONT, MPI_COMM_WORLD, &sreq[FRONT-1]);
+    MPI_Isend(front_block_out, bx * by * bt * nvar, MPI_DOUBLE, calc_pe(myXcoord, myYcoord, wrap_z(myZcoord+1), myTcoord), BACK, MPI_COMM_WORLD, &sreq[BACK-1]);
+    MPI_Isend(backward_block_out, bx * by * bz * nvar, MPI_DOUBLE, calc_pe(myXcoord, myYcoord, myZcoord, wrap_t(myTcoord-1)), FORWARD, MPI_COMM_WORLD, &sreq[FORWARD-1]);
+    MPI_Isend(forward_block_out, bx * by * bz * nvar, MPI_DOUBLE, calc_pe(myXcoord, myYcoord, myZcoord, wrap_t(myTcoord+1)), BACKWARD, MPI_COMM_WORLD, &sreq[BACKWARD-1]);
 
-    MPI_Isend(left_block_out, msg_size, MPI_DOUBLE, calc_pe(wrap_x(myXcoord-1), myYcoord, myZcoord, myTcoord), RIGHT, MPI_COMM_WORLD, &sreq[0]);
-#if CMK_BIGSIM_CHARM
-    changeMessage(timeLine[timeLine.length() - 3]);
+#if WRITE_OTF2_TRACE
+    // Marks compute region for computation-communication overlap
+    SCOREP_USER_REGION_BY_NAME_BEGIN("TRACER_stencil4d_overlap", SCOREP_USER_REGION_TYPE_COMMON);
+    SCOREP_USER_REGION_BY_NAME_END("TRACER_stencil4d_overlap");
 #endif
-    MPI_Isend(right_block_out, msg_size, MPI_DOUBLE, calc_pe(wrap_x(myXcoord+1), myYcoord, myZcoord, myTcoord), LEFT, MPI_COMM_WORLD, &sreq[1]);
-#if CMK_BIGSIM_CHARM
-    changeMessage(timeLine[timeLine.length() - 3]);
-#endif
-    MPI_Isend(bottom_block_out, msg_size, MPI_DOUBLE, calc_pe(myXcoord, wrap_y(myYcoord-1), myZcoord, myTcoord), TOP, MPI_COMM_WORLD, &sreq[2]);
-#if CMK_BIGSIM_CHARM
-    changeMessage(timeLine[timeLine.length() - 3]);
-#endif
-    MPI_Isend(top_block_out, msg_size, MPI_DOUBLE, calc_pe(myXcoord, wrap_y(myYcoord+1), myZcoord, myTcoord), BOTTOM, MPI_COMM_WORLD, &sreq[3]);
-#if CMK_BIGSIM_CHARM
-    changeMessage(timeLine[timeLine.length() - 3]);
-#endif
-    MPI_Isend(back_block_out, msg_size, MPI_DOUBLE, calc_pe(myXcoord, myYcoord, wrap_z(myZcoord-1), myTcoord), FRONT, MPI_COMM_WORLD, &sreq[4]);
-#if CMK_BIGSIM_CHARM
-    changeMessage(timeLine[timeLine.length() - 3]);
-#endif
-    MPI_Isend(front_block_out, msg_size, MPI_DOUBLE, calc_pe(myXcoord, myYcoord, wrap_z(myZcoord+1), myTcoord), BACK, MPI_COMM_WORLD, &sreq[5]);
-#if CMK_BIGSIM_CHARM
-    changeMessage(timeLine[timeLine.length() - 3]);
-#endif
-    MPI_Isend(backward_block_out, msg_size, MPI_DOUBLE, calc_pe(myXcoord, myYcoord, myZcoord, wrap_t(myTcoord-1)), FORWARD, MPI_COMM_WORLD, &sreq[6]);
-#if CMK_BIGSIM_CHARM
-    changeMessage(timeLine[timeLine.length() - 3]);
-#endif
-    MPI_Isend(forward_block_out, msg_size, MPI_DOUBLE, calc_pe(myXcoord, myYcoord, myZcoord, wrap_t(myTcoord+1)), BACKWARD, MPI_COMM_WORLD, &sreq[7]);
-#if CMK_BIGSIM_CHARM
-    changeMessage(timeLine[timeLine.length() - 3]);
-#endif
-
+  
+    //wait for all communication to complete
     MPI_Waitall(8, req, status);
     MPI_Waitall(8, sreq, status);
-#if CMK_BIGSIM_CHARM
-    BgMark("Stencil4D_Work");
-    MPI_Loop_to_start();
+
+#if WRITE_OTF2_TRACE
+    // Marks compute region after messaging
+    SCOREP_USER_REGION_BY_NAME_BEGIN("TRACER_stencil4d_post_msg", SCOREP_USER_REGION_TYPE_COMMON);
+    SCOREP_USER_REGION_BY_NAME_END("TRACER_stencil4d_post_msg");
 #endif
   }
 
 #if WRITE_OTF2_TRACE
+  // Marks the end of code region to be repeated in simulation
   SCOREP_USER_REGION_BY_NAME_END("TRACER_Loop");
-#elif CMK_BIGSIM_CHARM
-  AMPI_Set_endevent();
 #endif
-
   MPI_Barrier(MPI_COMM_WORLD);
-  endTime = MPI_Wtime();
-
-  if(myRank == 0) {
-    printf("Completed %d iterations\n", iterations);
-    printf("Time elapsed per iteration: %f s\n", (endTime - startTime)/(MAX_ITER));
-  }
+  stopTime = MPI_Wtime();
 
 #if WRITE_OTF2_TRACE
-  if(!myRank)
-    SCOREP_USER_REGION_BY_NAME_END("TRACER_WallTime_Loop");
+  // Marks when to print a timer in simulation
+  if(!myrank)
+    SCOREP_USER_REGION_BY_NAME_END("TRACER_WallTime_stencil4d");
   SCOREP_RECORDING_OFF();
-#elif CMK_BIGSIM_CHARM
-  if(!myRank)
-    BgPrintf("After loop Current time is %f\n");
-  MPI_Set_trace_status(0);
-  MPI_Barrier(MPI_COMM_WORLD);
 #endif
+
+  //finalized summary output
+  if(myrank == 0 && MAX_ITER != 0) {
+    printf("Finished %d iterations\n",MAX_ITER);
+    printf("Time elapsed per iteration for grid size (%d,%d,%d,%d) x %d x 8: %f s\n", 
+    bx, by, bz, bt, nvar, (stopTime - startTime)/MAX_ITER);
+  }
+
   MPI_Finalize();
-  return 0;
-} /* end function main */
+}
+

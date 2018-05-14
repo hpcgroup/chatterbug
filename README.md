@@ -10,5 +10,6 @@ List of benchmarks:
   * Pairs: all pairs multi-pairs message exchange
   * Spread: k-neighbor communication within rankspace neighborhood
   * Stencil3D: structured 3D near neighbor pattern like that of jacobi/halo
+  * Stencil4D: structured 4D near neighbor pattern like that of jacobi/halo
   * Unstr-mesh: unstructured mesh communication pattern
 

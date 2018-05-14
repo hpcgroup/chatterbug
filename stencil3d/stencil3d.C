@@ -97,8 +97,8 @@ int main(int argc, char **argv) {
   if(!myrank)
     SCOREP_USER_REGION_BY_NAME_BEGIN("TRACER_WallTime_stencil3d", SCOREP_USER_REGION_TYPE_COMMON);
 #endif
-  startTime = MPI_Wtime();
 
+  startTime = MPI_Wtime();
   for (int i = 0; i < MAX_ITER; i++) {
 #if WRITE_OTF2_TRACE
     // Marks compute region before messaging
