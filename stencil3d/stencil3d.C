@@ -105,6 +105,7 @@ int main(int argc, char **argv) {
     SCOREP_USER_REGION_BY_NAME_BEGIN("TRACER_stencil3d_pre_msg", SCOREP_USER_REGION_TYPE_COMMON);
     SCOREP_USER_REGION_BY_NAME_END("TRACER_stencil3d_pre_msg");
 #endif
+    // post receives: one for each direction and dimension
     MPI_Irecv(right_block_in, ny * nz * nvar, MPI_DOUBLE, calc_pe(wrap_x(myXcoord+1), myYcoord, myZcoord), RIGHT, MPI_COMM_WORLD, &req[RIGHT-1]);
     MPI_Irecv(left_block_in, ny * nz * nvar, MPI_DOUBLE, calc_pe(wrap_x(myXcoord-1), myYcoord, myZcoord), LEFT, MPI_COMM_WORLD, &req[LEFT-1]);
     MPI_Irecv(top_block_in, nx * nz * nvar, MPI_DOUBLE, calc_pe(myXcoord,wrap_y(myYcoord+1), myZcoord), TOP, MPI_COMM_WORLD, &req[TOP-1]);
@@ -112,6 +113,7 @@ int main(int argc, char **argv) {
     MPI_Irecv(front_block_in, nx * ny * nvar, MPI_DOUBLE, calc_pe(myXcoord, myYcoord, wrap_z(myZcoord+1)),FRONT, MPI_COMM_WORLD, &req[FRONT-1]);
     MPI_Irecv(back_block_in, nx * ny * nvar, MPI_DOUBLE, calc_pe(myXcoord, myYcoord, wrap_z(myZcoord-1)),BACK, MPI_COMM_WORLD, &req[BACK-1]);
 
+    // initiate sends: one for each direction and dimension
     MPI_Isend(left_block_out, ny * nz * nvar, MPI_DOUBLE, calc_pe(wrap_x(myXcoord-1), myYcoord, myZcoord), RIGHT, MPI_COMM_WORLD, &sreq[RIGHT-1]);
     MPI_Isend(right_block_out, ny * nz * nvar, MPI_DOUBLE, calc_pe(wrap_x(myXcoord+1), myYcoord, myZcoord), LEFT, MPI_COMM_WORLD, &sreq[LEFT-1]);
     MPI_Isend(bottom_block_out, nx * nz * nvar, MPI_DOUBLE, calc_pe(myXcoord, wrap_y(myYcoord-1), myZcoord), TOP, MPI_COMM_WORLD, &sreq[TOP-1]);
@@ -124,7 +126,8 @@ int main(int argc, char **argv) {
     SCOREP_USER_REGION_BY_NAME_BEGIN("TRACER_stencil3d_overlap", SCOREP_USER_REGION_TYPE_COMMON);
     SCOREP_USER_REGION_BY_NAME_END("TRACER_stencil3d_overlap");
 #endif
-
+  
+    //wait for all communication to complete
     MPI_Waitall(6, req, status);
     MPI_Waitall(6, sreq, status);
 
@@ -149,6 +152,7 @@ int main(int argc, char **argv) {
   SCOREP_RECORDING_OFF();
 #endif
 
+  //finalized summary output
   if(myrank == 0 && MAX_ITER != 0) {
     printf("Finished %d iterations\n",MAX_ITER);
     printf("Time elapsed per iteration for grid size (%d,%d,%d) x %d x 8: %f s\n", 
