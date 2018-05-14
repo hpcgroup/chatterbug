@@ -1,12 +1,9 @@
 include ../Makefile.common
 
-all: a2a-onedir$(SUFFIX)  a2a-twodirs$(SUFFIX) 
+all: subcom-a2a$(SUFFIX) 
 
-a2a-onedir$(SUFFIX) : a2a-onedir.C
-	$(CC) $(OPTS) $(INCS) -o $@ $<
-
-a2a-twodirs$(SUFFIX) : a2a-twodirs.C
-	$(CC) $(OPTS) $(INCS) -o $@ $<
+subcom-a2a$(SUFFIX) : subcom-a2a.C
+	$(CXX) $(OPTS) $(INCS) -o $@ $<
 
 clean:
-	rm -f a2a-onedir$(SUFFIX)  a2a-twodirs$(SUFFIX)
+	rm -f subcom-a2a$(SUFFIX)
