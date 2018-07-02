@@ -70,7 +70,7 @@ int main(int argc, char **argv) {
   int myXcoord = (myrank % nx);
   int myYcoord = (myrank % (nx * ny)) / nx;
   int myZcoord = (myrank % (nx * ny * nz)) / (nx * ny);
-  int myTcoord = (myrank % (nx * ny * nz * nt)) / (nx * ny * nt);
+  int myTcoord = (myrank % (nx * ny * nz * nt)) / (nx * ny * nz);
 
   if(myrank == 0) {
     printf("Running stencil4d on %d processors each with (%d, %d, %d, %d) grid points with %d variables\n", numranks, bx, by, bz, bt, nvar);
