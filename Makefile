@@ -13,12 +13,16 @@
 # Please also read the LICENSE file for the MIT License notice.
 ##############################################################################
 
-include ../Makefile.common
+proxies := pairs ping-ping qbox spread stencil3d stencil4d subcom-a2a unstr-mesh
 
-all: qbox-mini$(SUFFIX)
+.PHONY: all $(proxies)
+all: $(proxies)
 
-qbox-mini$(SUFFIX): qbox-mini.C
-	$(CXX) $(OPTS) $(INCS) -o $@ $<
+$(proxies):
+	$(MAKE) --directory=$@
 
 clean:
-	rm -f qbox-mini$(SUFFIX)
+	for dir in $(proxies) $(libraries);  \
+	do									 \
+		$(MAKE) --directory=$$dir clean; \
+	done
