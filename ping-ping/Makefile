@@ -13,18 +13,12 @@
 # Please also read the LICENSE file for the MIT License notice.
 ##############################################################################
 
-WITH_OTF2 ?= NO
+include ../Makefile.common
 
-ifneq ($(WITH_OTF2),YES)
-# no tracing
-	CXX		= mpicxx
-	OPTS	= -O3 
-	INCS	= 
-	SUFFIX	= .x
-else
-# for OTF2 traces
-	CXX	= 	scorep --user --nocompiler --noopenmp --nopomp --nocuda --noopenacc --noopencl --nomemory mpicxx
-	OPTS	= -O3 -DWRITE_OTF2_TRACE=1 -DSCOREP_USER_ENABLE
-	INCS	= -I${SCOREP_INSTALL}/include -I${SCOREP_INSTALL}/include/scorep
-	SUFFIX = .otf2
-endif
+all:ping-ping$(SUFFIX)
+
+ping-ping$(SUFFIX): ping-ping.C
+	$(CXX) $(OPTS) $(INCS) -o $@ $< 
+
+clean:
+	rm -f ping-ping$(SUFFIX)
