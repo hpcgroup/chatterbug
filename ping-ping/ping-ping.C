@@ -33,7 +33,7 @@ int main(int argc, char **argv)
 
   if(argc < 5) {
     if(!myrank) {
-      printf("\nThis is the multi-pair pingping communication proxy. The correct usage is:\n"
+      printf("\nThis is the multi-pair ping-ping communication proxy. The correct usage is:\n"
              "%s src_0 dst_0 <src_i dst_i>* msg_size MAX_ITER\n\n"
              "    src_0 dst_0: first communicating pair\n"
              "    (optional) src_i dst_i: more communicating pairs as desired\n"

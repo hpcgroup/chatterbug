@@ -39,7 +39,7 @@ int main(int argc, char **argv)
 
   if(argc != 8) {
     if(!myrank)
-      printf("\nThis is the subcom-a2a communication proxy. The correct usage is:\n"
+      printf("\nThis is the subcom3d-a2a communication proxy. The correct usage is:\n"
              "%s nx ny nz msg_size_x msg_size_y msg_size_z MAX_ITER\n\n"
              "    nx, ny, nz: layout of process grid in 3D\n"
              "    msg_size_x: size of per pair all to all messages along X dimension, 0 to skip (in bytes)\n"

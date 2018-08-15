@@ -15,10 +15,10 @@
 
 include ../Makefile.common
 
-all: subcom-a2a$(SUFFIX) 
+all: subcom3d-a2a$(SUFFIX)
 
-subcom-a2a$(SUFFIX) : subcom-a2a.C
+subcom3d-a2a$(SUFFIX) : subcom3d-a2a.C
 	$(CXX) $(OPTS) $(INCS) -o $@ $<
 
 clean:
-	rm -f subcom-a2a$(SUFFIX)
+	rm -f subcom3d-a2a$(SUFFIX)

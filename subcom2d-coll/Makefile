@@ -15,10 +15,10 @@
 
 include ../Makefile.common
 
-all: qbox-mini$(SUFFIX)
+all: subcom2d-coll$(SUFFIX)
 
-qbox-mini$(SUFFIX): qbox-mini.C
+subcom2d-coll$(SUFFIX): subcom2d-coll.C
 	$(CXX) $(OPTS) $(INCS) -o $@ $<
 
 clean:
-	rm -f qbox-mini$(SUFFIX)
+	rm -f subcom2d-coll$(SUFFIX)

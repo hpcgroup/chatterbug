@@ -13,7 +13,8 @@
 # Please also read the LICENSE file for the MIT License notice.
 ##############################################################################
 
-proxies := pairs ping-ping qbox spread stencil3d stencil4d subcom-a2a unstr-mesh
+proxies := pairs ping-ping spread stencil3d stencil4d subcom2d-coll \
+		   subcom3d-a2a unstr-mesh
 
 .PHONY: all $(proxies)
 all: $(proxies)
@@ -22,7 +23,7 @@ $(proxies):
 	$(MAKE) --directory=$@
 
 clean:
-	for dir in $(proxies) $(libraries);  \
+	for dir in $(proxies);               \
 	do									 \
 		$(MAKE) --directory=$$dir clean; \
 	done

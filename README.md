@@ -7,9 +7,8 @@ for benchmarking, or for trace generation using OTF2.
 
 ### List of Proxy Applications:
 
-  * ping-ping: multi-pairs message exchange (user specified pairs)
   * pairs: all pairs multi-pairs message exchange
-  * qbox: collectives over sub-communicators
+  * ping-ping: multi-pairs message exchange (user specified pairs)
   * spread: k-neighbor communication within rankspace neighborhood
   * stencil3d: structured 3D near neighbor pattern like that of jacobi/halo
   * stencil4d: structured 4D near neighbor pattern like that of jacobi/halo
