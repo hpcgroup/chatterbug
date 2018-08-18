@@ -18,7 +18,7 @@ include ../Makefile.common
 all:ping-ping$(SUFFIX)
 
 ping-ping$(SUFFIX): ping-ping.C
-	$(CXX) $(OPTS) $(INCS) -o $@ $< 
+	$(CXX) $(CXXFLAGS) -o $@ $<
 
 clean:
 	rm -f ping-ping$(SUFFIX)

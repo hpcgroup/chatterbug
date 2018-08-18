@@ -18,7 +18,7 @@ include ../Makefile.common
 all: subcom2d-coll$(SUFFIX)
 
 subcom2d-coll$(SUFFIX): subcom2d-coll.C
-	$(CXX) $(OPTS) $(INCS) -o $@ $<
+	$(CXX) $(CXXFLAGS) -o $@ $<
 
 clean:
 	rm -f subcom2d-coll$(SUFFIX)

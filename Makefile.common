@@ -13,18 +13,15 @@
 # Please also read the LICENSE file for the MIT License notice.
 ##############################################################################
 
-WITH_OTF2 ?= NO
-
-ifneq ($(WITH_OTF2),YES)
-# no tracing
-	CXX		= mpicxx
-	OPTS	= -O3 
-	INCS	= 
-	SUFFIX	= .x
+ifeq ($(WITH_OTF2),YES)
+# enable OTF2 tracing
+	SCOREP_PREFIX	= scorep --user --nocompiler --noopenmp --nopomp --nocuda --noopenacc --noopencl --nomemory
+	SCOREP_FLAGS	= -DWRITE_OTF2_TRACE=1 -DSCOREP_USER_ENABLE -I${SCOREP_INSTALL}/include/scorep
+	SUFFIX	= .otf2
 else
-# for OTF2 traces
-	CXX	= 	scorep --user --nocompiler --noopenmp --nopomp --nocuda --noopenacc --noopencl --nomemory mpicxx
-	OPTS	= -O3 -DWRITE_OTF2_TRACE=1 -DSCOREP_USER_ENABLE
-	INCS	= -I${SCOREP_INSTALL}/include -I${SCOREP_INSTALL}/include/scorep
-	SUFFIX = .otf2
+	SUFFIX	= .x
 endif
+
+MPICXX	= mpicxx
+CXX		= $(SCOREP_PREFIX) $(MPICXX)
+CXXFLAGS= -O3 $(SCOREP_FLAGS)

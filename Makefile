@@ -13,6 +13,16 @@
 # Please also read the LICENSE file for the MIT License notice.
 ##############################################################################
 
+ifeq ($(WITH_OTF2),YES)
+# enable OTF2 tracing
+	SUFFIX	= .otf2
+else
+# no tracing
+	SUFFIX	= .x
+endif
+
+PREFIX	= .
+
 proxies := pairs ping-ping spread stencil3d stencil4d subcom2d-coll \
 		   subcom3d-a2a unstr-mesh
 
@@ -23,7 +33,15 @@ $(proxies):
 	$(MAKE) --directory=$@
 
 clean:
-	for dir in $(proxies);               \
-	do									 \
+	for dir in $(proxies); \
+	do					   \
 		$(MAKE) --directory=$$dir clean; \
+	done
+
+.PHONY: install
+install: $(proxies)
+	mkdir -p $(PREFIX)/bin
+	for dir in $(proxies); \
+	do					   \
+		cp $$dir/$$dir$(SUFFIX) $(PREFIX)/bin/; \
 	done

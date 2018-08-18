@@ -18,7 +18,7 @@ include ../Makefile.common
 all: spread$(SUFFIX) 
 
 spread$(SUFFIX) : spread.C
-	$(CXX) $(OPTS) $(INCS) -o $@ $<
+	$(CXX) $(CXXFLAGS) -o $@ $<
 
 clean:
 	rm -f spread$(SUFFIX) 

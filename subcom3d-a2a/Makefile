@@ -18,7 +18,7 @@ include ../Makefile.common
 all: subcom3d-a2a$(SUFFIX)
 
 subcom3d-a2a$(SUFFIX) : subcom3d-a2a.C
-	$(CXX) $(OPTS) $(INCS) -o $@ $<
+	$(CXX) $(CXXFLAGS) -o $@ $<
 
 clean:
 	rm -f subcom3d-a2a$(SUFFIX)
