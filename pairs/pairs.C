@@ -59,7 +59,7 @@ int main(int argc, char **argv)
 
   double startTime, stopTime;
   MPI_Status status;
-  int requests[2];
+  MPI_Request requests[2];
   char *sendbuf, *recvbuf;
   int partner;
 

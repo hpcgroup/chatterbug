@@ -61,7 +61,7 @@ int main(int argc, char **argv)
   int MAX_ITER = atoi(argv[curP+1]);
 
   char *sendbuf, *recvbuf;
-  int requests[2];
+  MPI_Request requests[2];
 
   if(paired != -1) {
     sendbuf = (char*)malloc(msg_size * sizeof(char));
