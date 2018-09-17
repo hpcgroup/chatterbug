@@ -20,6 +20,16 @@ for benchmarking, or for trace generation using OTF2.
 For OTF2 tracing, see notes here: https://github.com/LLNL/tracer/blob/master/README.OTF
 
 
+### Reference
+
+Any published work that utilizes this software should include the following
+reference:
+
+```
+Nikhil Jain and Abhinav Bhatele. Chatterbug communication proxy
+applications suite. https://github.com/LLNL/chatterbug. LLNL-CODE-756471.
+```
+
 ### Release
 
 Copyright (c) 2018, Lawrence Livermore National Security, LLC.
