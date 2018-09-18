@@ -18,6 +18,7 @@
 #include <stdlib.h>
 #include <strings.h>
 #include <math.h>
+#include "../compute_delay.h"
 
 #if WRITE_OTF2_TRACE
 #include <scorep/SCOREP_User.h>
@@ -47,14 +48,15 @@ int main(int argc, char **argv) {
   MPI_Comm_size(MPI_COMM_WORLD, &numranks);
   MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
   
-  if(argc != 11) {
+  if(argc != 14) {
     if(!myrank)
       printf("\nThis is the stencil4D (aka halo4d) communication proxy. The correct usage is:\n"
              "%s nx ny nz nt bx by bz bt nvar MAX_ITER\n\n"
              "    nx, ny, nz, nt: layout of process grid in 4D\n"
              "    bx, by, bz, bt: grid size on each process\n"
              "    nvar: number of variables at each grid point\n"
-             "    MAX_ITER: how many iters to run\n\n",
+             "    MAX_ITER: how many iters to run\n"
+             "    pre_msg, overlap, post_msg: computation time in microseconds\n\n",
              argv[0]);
     MPI_Abort(MPI_COMM_WORLD, 1);
   }
@@ -73,6 +75,9 @@ int main(int argc, char **argv) {
   int bt = atoi(argv[8]);
   int nvar = atoi(argv[9]);
   int MAX_ITER = atoi(argv[10]);
+  long long pre_msg = atoll(argv[11]);
+  long long overlap = atoll(argv[12]);
+  long long post_msg = atoll(argv[13]);
 
   if(nx * ny * nz * nt != numranks) {
     if(!myrank) {
@@ -88,7 +93,7 @@ int main(int argc, char **argv) {
   int myTcoord = (myrank % (nx * ny * nz * nt)) / (nx * ny * nz);
 
   if(myrank == 0) {
-    printf("Running stencil4d on %d processors each with (%d, %d, %d, %d) grid points with %d variables\n", numranks, bx, by, bz, bt, nvar);
+    printf("Running stencil4d on %d processors each with (%d, %d, %d, %d) grid points with %d variables and delays (%d,%d,%d) \n", numranks, bx, by, bz, bt, nvar, pre_msg, overlap, post_msg);
   }
 
   /* left, right, bottom, top, back, forward and backward  blocks into arrays.*/
@@ -113,6 +118,7 @@ int main(int argc, char **argv) {
   double *backward_block_in   = (double *)malloc(sizeof(double) * bx * by * bz * nvar);
 
   double startTime, stopTime;
+  double localStart, localStop;
 
   MPI_Barrier(MPI_COMM_WORLD);
 #if WRITE_OTF2_TRACE
@@ -125,10 +131,14 @@ int main(int argc, char **argv) {
 #endif
   
   startTime = MPI_Wtime();
+  localStart = startTime;
   for (int i = 0; i < MAX_ITER; i++) {
 #if WRITE_OTF2_TRACE
     // Marks compute region before messaging
     SCOREP_USER_REGION_BY_NAME_BEGIN("TRACER_stencil4d_pre_msg", SCOREP_USER_REGION_TYPE_COMMON);
+#endif
+    fake_compute(pre_msg * 1000);
+#if WRITE_OTF2_TRACE
     SCOREP_USER_REGION_BY_NAME_END("TRACER_stencil4d_pre_msg");
 #endif
     // post receives: one for each direction and dimension
@@ -154,6 +164,9 @@ int main(int argc, char **argv) {
 #if WRITE_OTF2_TRACE
     // Marks compute region for computation-communication overlap
     SCOREP_USER_REGION_BY_NAME_BEGIN("TRACER_stencil4d_overlap", SCOREP_USER_REGION_TYPE_COMMON);
+#endif
+    fake_compute(overlap * 1000);
+#if WRITE_OTF2_TRACE
     SCOREP_USER_REGION_BY_NAME_END("TRACER_stencil4d_overlap");
 #endif
   
@@ -164,8 +177,19 @@ int main(int argc, char **argv) {
 #if WRITE_OTF2_TRACE
     // Marks compute region after messaging
     SCOREP_USER_REGION_BY_NAME_BEGIN("TRACER_stencil4d_post_msg", SCOREP_USER_REGION_TYPE_COMMON);
+#endif
+    fake_compute(post_msg * 1000);
+#if WRITE_OTF2_TRACE
     SCOREP_USER_REGION_BY_NAME_END("TRACER_stencil4d_post_msg");
 #endif
+    if(i % 10 == 9) {
+      MPI_Barrier(MPI_COMM_WORLD);
+      localStop = MPI_Wtime();
+      if(myrank == 0) {
+        printf("Time elapsed %d to %d : %f\n", i-10, i, localStop - localStart);
+      }
+      localStart = localStop;
+    }
   }
 
 #if WRITE_OTF2_TRACE

@@ -16,6 +16,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "mpi.h"
+#include "../compute_delay.h"
 
 #define MP_X 0
 #define MP_Y 1
@@ -37,15 +38,16 @@ int main(int argc, char **argv)
   MPI_Comm_rank(MPI_COMM_WORLD,&myrank);
   MPI_Comm_size(MPI_COMM_WORLD,&numranks);
 
-  if(argc != 8) {
+  if(argc != 14) {
     if(!myrank)
-      printf("\nThis is the subcom3d-a2a communication proxy. The correct usage is:\n"
+      printf("\nThis is the subcom-a2a communication proxy. The correct usage is:\n"
              "%s nx ny nz msg_size_x msg_size_y msg_size_z MAX_ITER\n\n"
              "    nx, ny, nz: layout of process grid in 3D\n"
              "    msg_size_x: size of per pair all to all messages along X dimension, 0 to skip (in bytes)\n"
              "    msg_size_y: size of per pair all to all messages along Y dimension, 0 to skip  (in bytes)\n"
              "    msg_size_z: size of per pair all to all messages along Z dimension, 0 to skip  (in bytes)\n"
-             "    MAX_ITER: how many iters to run\n\n",
+             "    MAX_ITER: how many iters to run\n"
+             "    pre_x, post_x, pre_y, post_y, pre_z, post_z: computation time in microseconds\n\n",
              argv[0]);
     MPI_Abort(MPI_COMM_WORLD, 1);
   }
@@ -59,6 +61,12 @@ int main(int argc, char **argv)
   int msg_size_y = atoi(argv[5]);
   int msg_size_z = atoi(argv[6]);
   int MAX_ITER = atoi(argv[7]);
+  long long pre_x = atoll(argv[8]);
+  long long post_x = atoll(argv[9]);
+  long long pre_y = atoll(argv[10]);
+  long long post_y = atoll(argv[11]);
+  long long pre_z = atoll(argv[12]);
+  long long post_z = atoll(argv[13]);
   
   if(dims[MP_X] * dims[MP_Y] * dims[MP_Z] != numranks) {
     if(!myrank) {
@@ -99,6 +107,8 @@ int main(int argc, char **argv)
   }
 
   double startTime, stopTime;
+  double localStart, localStop;
+
   MPI_Barrier(MPI_COMM_WORLD);
 #if WRITE_OTF2_TRACE
   SCOREP_RECORDING_ON();
@@ -110,17 +120,24 @@ int main(int argc, char **argv)
 #endif
 
   startTime = MPI_Wtime();
+  localStart = startTime;
   for (int i = 0; i < MAX_ITER; i++) {
     if(!skip[MP_X]) {
 #if WRITE_OTF2_TRACE
       // Marks compute region before messaging
       SCOREP_USER_REGION_BY_NAME_BEGIN("TRACER_a2a_pre_x", SCOREP_USER_REGION_TYPE_COMMON);
+#endif
+      fake_compute(pre_x * 1000);
+#if WRITE_OTF2_TRACE
       SCOREP_USER_REGION_BY_NAME_END("TRACER_a2a_pre_x");
 #endif
       MPI_Alltoall(sendbuf, msg_size_x, MPI_CHAR, recvbuf, msg_size_x, MPI_CHAR, X_comm);
 #if WRITE_OTF2_TRACE
       // Marks compute region after messaging
       SCOREP_USER_REGION_BY_NAME_BEGIN("TRACER_a2a_post_x", SCOREP_USER_REGION_TYPE_COMMON);
+#endif
+      fake_compute(post_x * 1000);
+#if WRITE_OTF2_TRACE
       SCOREP_USER_REGION_BY_NAME_END("TRACER_a2a_post_x");
 #endif
     }
@@ -129,12 +146,18 @@ int main(int argc, char **argv)
 #if WRITE_OTF2_TRACE
       // Marks compute region before messaging
       SCOREP_USER_REGION_BY_NAME_BEGIN("TRACER_a2a_pre_y", SCOREP_USER_REGION_TYPE_COMMON);
+#endif
+      fake_compute(pre_y * 1000);
+#if WRITE_OTF2_TRACE
       SCOREP_USER_REGION_BY_NAME_END("TRACER_a2a_pre_y");
 #endif
       MPI_Alltoall(sendbuf, msg_size_y, MPI_CHAR, recvbuf, msg_size_y, MPI_CHAR, Y_comm);
 #if WRITE_OTF2_TRACE
       // Marks compute region after messaging
       SCOREP_USER_REGION_BY_NAME_BEGIN("TRACER_a2a_post_y", SCOREP_USER_REGION_TYPE_COMMON);
+#endif
+      fake_compute(post_y * 1000);
+#if WRITE_OTF2_TRACE
       SCOREP_USER_REGION_BY_NAME_END("TRACER_a2a_post_y");
 #endif
     }
@@ -143,14 +166,28 @@ int main(int argc, char **argv)
 #if WRITE_OTF2_TRACE
       // Marks compute region before messaging
       SCOREP_USER_REGION_BY_NAME_BEGIN("TRACER_a2a_pre_z", SCOREP_USER_REGION_TYPE_COMMON);
+#endif
+      fake_compute(pre_z * 1000);
+#if WRITE_OTF2_TRACE
       SCOREP_USER_REGION_BY_NAME_END("TRACER_a2a_pre_z");
 #endif
       MPI_Alltoall(sendbuf, msg_size_z, MPI_CHAR, recvbuf, msg_size_z, MPI_CHAR, Z_comm);
 #if WRITE_OTF2_TRACE
       // Marks compute region after messaging
       SCOREP_USER_REGION_BY_NAME_BEGIN("TRACER_a2a_post_z", SCOREP_USER_REGION_TYPE_COMMON);
+#endif
+      fake_compute(post_z * 1000);
+#if WRITE_OTF2_TRACE
       SCOREP_USER_REGION_BY_NAME_END("TRACER_a2a_post_z");
 #endif
+    }
+    if(i % 10 == 9) {
+      MPI_Barrier(MPI_COMM_WORLD);
+      localStop = MPI_Wtime();
+      if(myrank == 0) {
+        printf("Time elapsed %d to %d : %f\n", i-10, i, localStop - localStart);
+      }
+      localStart = localStop;
     }
   }
 
