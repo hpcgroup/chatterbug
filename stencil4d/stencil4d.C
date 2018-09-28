@@ -193,7 +193,7 @@ int main(int argc, char **argv) {
 #if WRITE_OTF2_TRACE
         SCOREP_USER_REGION_BY_NAME_END("TRACER_WallTime_stencil4d_region");
 #endif
-        printf("Time elapsed %d to %d : %f\n", (i-TIMER_PRINT_FREQ), i, localStop - localStart);
+        printf("Time elapsed %d to %d : %f\n", (i-TIMER_PRINT_FREQ+1), i, localStop - localStart);
 #if WRITE_OTF2_TRACE
         SCOREP_USER_REGION_BY_NAME_BEGIN("TRACER_WallTime_stencil4d_region", SCOREP_USER_REGION_TYPE_COMMON);
 #endif
