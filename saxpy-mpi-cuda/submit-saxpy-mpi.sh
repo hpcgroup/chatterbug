@@ -5,7 +5,6 @@
 #SBATCH -n 2
 ####SBATCH --exclusive 
 #SBATCH -p gpu 
-#SBATCH -A bhatele-lab-cmsc
 
 module load cuda
 module load openmpi 
