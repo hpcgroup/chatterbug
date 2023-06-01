@@ -1,0 +1,21 @@
+Start (ns),Duration (ns),CorrId,GrdX,GrdY,GrdZ,BlkX,BlkY,BlkZ,Reg/Trd,StcSMem (MB),DymSMem (MB),Bytes (MB),Throughput (MBps),SrcMemKd,DstMemKd,Device,Ctx,Strm,Name
+1234885786,19602992,210,,,,,,,,,,262.144,13369.344,Pageable,Device,NVIDIA A100-SXM4-40GB (1),1,7,[CUDA memcpy HtoD]
+1254554122,18776152,211,,,,,,,,,,262.144,13893.632,Pageable,Device,NVIDIA A100-SXM4-40GB (1),1,7,[CUDA memcpy HtoD]
+1273455329,19910414,212,2,1,1,512,1,1,26,0.000,0.000,,,,,NVIDIA A100-SXM4-40GB (1),1,7,"saxpy(double *, double *, double *, double, int)"
+1293367534,41562861,213,,,,,,,,,,262.144,6291.456,Device,Pageable,NVIDIA A100-SXM4-40GB (1),1,7,[CUDA memcpy DtoH]
+1441590496,18849047,217,,,,,,,,,,262.144,13893.632,Pageable,Device,NVIDIA A100-SXM4-40GB (1),1,7,[CUDA memcpy HtoD]
+1460504087,18812951,218,,,,,,,,,,262.144,13893.632,Pageable,Device,NVIDIA A100-SXM4-40GB (1),1,7,[CUDA memcpy HtoD]
+1479381966,19933837,219,2,1,1,512,1,1,26,0.000,0.000,,,,,NVIDIA A100-SXM4-40GB (1),1,7,"saxpy(double *, double *, double *, double, int)"
+1499320795,24200840,220,,,,,,,,,,262.144,10747.904,Device,Pageable,NVIDIA A100-SXM4-40GB (1),1,7,[CUDA memcpy DtoH]
+1627003813,18961142,224,,,,,,,,,,262.144,13631.488,Pageable,Device,NVIDIA A100-SXM4-40GB (1),1,7,[CUDA memcpy HtoD]
+1646036954,19147829,225,,,,,,,,,,262.144,13631.488,Pageable,Device,NVIDIA A100-SXM4-40GB (1),1,7,[CUDA memcpy HtoD]
+1665266286,19916782,226,2,1,1,512,1,1,26,0.000,0.000,,,,,NVIDIA A100-SXM4-40GB (1),1,7,"saxpy(double *, double *, double *, double, int)"
+1685186396,46775677,227,,,,,,,,,,262.144,5505.024,Device,Pageable,NVIDIA A100-SXM4-40GB (1),1,7,[CUDA memcpy DtoH]
+1834100744,19200596,231,,,,,,,,,,262.144,13631.488,Pageable,Device,NVIDIA A100-SXM4-40GB (1),1,7,[CUDA memcpy HtoD]
+1853363931,18816760,232,,,,,,,,,,262.144,13893.632,Pageable,Device,NVIDIA A100-SXM4-40GB (1),1,7,[CUDA memcpy HtoD]
+1872243602,19913582,233,2,1,1,512,1,1,26,0.000,0.000,,,,,NVIDIA A100-SXM4-40GB (1),1,7,"saxpy(double *, double *, double *, double, int)"
+1892161568,24449893,234,,,,,,,,,,262.144,10485.760,Device,Pageable,NVIDIA A100-SXM4-40GB (1),1,7,[CUDA memcpy DtoH]
+2017289792,18714936,238,,,,,,,,,,262.144,13893.632,Pageable,Device,NVIDIA A100-SXM4-40GB (1),1,7,[CUDA memcpy HtoD]
+2036067704,18713497,239,,,,,,,,,,262.144,13893.632,Pageable,Device,NVIDIA A100-SXM4-40GB (1),1,7,[CUDA memcpy HtoD]
+2054806288,19949966,240,2,1,1,512,1,1,26,0.000,0.000,,,,,NVIDIA A100-SXM4-40GB (1),1,7,"saxpy(double *, double *, double *, double, int)"
+2074757566,35610113,241,,,,,,,,,,262.144,7340.032,Device,Pageable,NVIDIA A100-SXM4-40GB (1),1,7,[CUDA memcpy DtoH]
