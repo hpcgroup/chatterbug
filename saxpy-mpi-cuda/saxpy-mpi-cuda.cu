@@ -35,6 +35,7 @@ int main(int argc, char *argv[]) {
 
     int c;
     char* endp;
+    // parse arguments
     while ((c = getopt (argc, argv, "N:i:h")) != -1) {
         switch (c) {
 	    case 'N':
@@ -69,6 +70,7 @@ int main(int argc, char *argv[]) {
     h_y = new double[N];
     
     for (int it = 0; it < iterations; it++){
+	// initialize
 	if (commRank == 0){
 	    for (int i = 0; i < N; i += 1) {
                 h_x[i] = 5.0;
@@ -77,6 +79,7 @@ int main(int argc, char *argv[]) {
 	    }
 	}
 	
+	// send the input arrays to the other process.
 	if (commRank == 0) {
 	    MPI_Send(h_x, N, MPI_DOUBLE, 1, it+0, MPI_COMM_WORLD);
 	    MPI_Send(h_y, N, MPI_DOUBLE, 1, it+1, MPI_COMM_WORLD);
@@ -90,18 +93,22 @@ int main(int argc, char *argv[]) {
 	cudaMalloc(&d_y, N*sizeof(double));
 	cudaMalloc(&d_x, N*sizeof(double));
 
+	// copy arrays from host to device
 	cudaMemcpy(d_x, h_x, N*sizeof(double), cudaMemcpyHostToDevice);
 	cudaMemcpy(d_y, h_y, N*sizeof(double), cudaMemcpyHostToDevice);
 	
     	int threadsPerBlock = 512;
     	int numBlocks = 2; //N/threadsPerBlock + (N % threadsPerBlock != 0);
 
+	// kernel call
 	nvtxRangePushA("saxpy");
     	saxpy<<<numBlocks, threadsPerBlock>>>(d_z, d_x, d_y, alpha, N);
     	nvtxRangePop();
 
+	// copy arrays back to the host
 	cudaMemcpy(h_z, d_z, N*sizeof(double), cudaMemcpyDeviceToHost);
 
+	// check if the results are correct
         bool success = true; 
 	for (size_t i = 0; i < N; i += 1) {
             if (std::abs(h_z[i] - (1.5*5.0-2.0)) > 1E-8) {
@@ -115,6 +122,7 @@ int main(int argc, char *argv[]) {
 	    printf("Rank %d => Correct results! it: %d\n", commRank, it);
 	}
 
+	// send the result to rank 0.
 	if (commRank == 1) {
 	    MPI_Send(h_z, N, MPI_DOUBLE, 0, it+2, MPI_COMM_WORLD);
 	}
@@ -122,6 +130,8 @@ int main(int argc, char *argv[]) {
 	    MPI_Recv(h_z, N, MPI_DOUBLE, 1, it+2, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 	}
     }
+
+    // cleaning
     delete[] h_x;
     delete[] h_y;
     delete[] h_z;	
