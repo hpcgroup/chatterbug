@@ -1,6 +1,0 @@
-API Start (ns),API Dur (ns),Queue Start (ns),Queue Dur (ns),Kernel Start (ns),Kernel Dur (ns),Total Dur (ns),PID,TID,DevId,API Function,Kernel Name
-1316611330,30969,1316642299,32,1316642331,20176780,20207781,2138607,2138607,0,cudaLaunchKernel,"saxpy(double *, double *, double *, double, int)"
-1504230339,45556,,,1504275585,20230763,20276009,2138607,2138607,0,cudaLaunchKernel,"saxpy(double *, double *, double *, double, int)"
-1700490576,30267,1700520843,1428,1700522271,20183884,20215579,2138607,2138607,0,cudaLaunchKernel,"saxpy(double *, double *, double *, double, int)"
-1895278734,33003,1895311737,2006,1895313743,20044429,20079438,2138607,2138607,0,cudaLaunchKernel,"saxpy(double *, double *, double *, double, int)"
-2088134897,32862,2088167759,71,2088167830,19198903,19231836,2138607,2138607,0,cudaLaunchKernel,"saxpy(double *, double *, double *, double, int)"
