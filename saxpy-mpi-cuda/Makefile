@@ -1,22 +1,21 @@
-MPI_FLAGS = -DUSE_MPI -I$(OPENMPI_ROOT)/include
-CUDA_FLAGS = -I$(CUDA_HOME)/include
+MPI_DIR         = $(OPENMPI_ROOT)
+NVCC            = nvcc
+NVCC_FLAGS      = -I$(MPI_DIR)/include
+CUDA_INCLUDE    = $(CUDA_HOME)/include
+LIBS            = -L$(MPI_DIR)/lib -lmpi -L$(CUDA_HOME)/lib64 -lcudart -lnvToolsExt
+PROFILE_FLAGS   = -lineinfo
+SRCS            = saxpy-mpi-cuda.cu
+OBJS            = saxpy-mpi-cuda.o
+EXECUTABLE      = saxpy-mpi-cuda
+ARCH            = #-arch=sm_80
 
-NVCC		= nvcc -ccbin $(MPICXX)
-FLAGS		= -arch=sm_80
-#DFLAGS	= $(MPI_FLAGS) $(CUDA_FLAGS) -lineinfo
-RFLAGS 	= $(MPI_FLAGS) $(CUDA_FLAGS) -g -O3 -DNDEBUG 
+all: $(EXECUTABLE)
+$(EXECUTABLE): $(OBJS)
+	$(NVCC) $(OBJS) -o $(EXECUTABLE) $(LIBS)
 
-LINKFLAGS = -lmpi -L$(OPENMPI_ROOT)/lib -L$(CUDA_HOME)/lib64 -lnvToolsExt 
+$(OBJS): $(SRCS)
+	$(NVCC) $(NVCC_FLAGS) $(ARCH) $(PROFILE_FLAGS) -I$(CUDA_INCLUDE) -c $(SRCS) -o $(OBJS)
 
-all: release 
-release: 	FLAGS += $(RFLAGS)
-release: saxpy-mpi-cuda
+clean:
+	rm -rf $(OBJS) $(EXECUTABLE)
 
-saxpy-mpi-cuda: saxpy-mpi-cuda.o
-	$(NVCC) $(LINKFLAGS) saxpy-mpi-cuda.o -o saxpy-mpi-cuda
-
-saxpy-mpi-cuda.o: saxpy-mpi-cuda.cu
-	$(NVCC) $(FLAGS) saxpy-mpi-cuda.cu -I ./ -c -o saxpy-mpi-cuda.o
-
-clean: 
-	rm -rf *.o
