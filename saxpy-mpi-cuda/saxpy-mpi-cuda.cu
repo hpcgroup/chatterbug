@@ -59,11 +59,11 @@ int main(int argc, char *argv[]) {
     if (commRank == 0) { 
         printf("Number of iterations: %d\n", iterations);
     	printf("Problem size (N): %d\n", N);
-    	
-	int deviceCount = 0;
-	cudaGetDeviceCount(&deviceCount);
-    	printf("Number of GPUs: %d\n", deviceCount);
     }
+
+    int deviceCount = 0;
+    cudaGetDeviceCount(&deviceCount);
+    printf("Rank %d - Number of GPUs: %d\n", commRank, deviceCount);
 
     h_z = new double[N];
     h_x = new double[N];
