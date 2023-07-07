@@ -13,4 +13,3 @@ The following parameters can be used to run the program:
 #### Example
 `./saxpy-mpi-cuda -i 5 -N 32768000`
 
-An example about how to run and profile it using NSight Systems can be found in the **submit-saxpy-mpi.sh** file.
